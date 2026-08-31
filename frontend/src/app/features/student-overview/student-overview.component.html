@@ -35,6 +35,13 @@
       </div>
 
       <div class="overview-header__actions">
+        <button type="button" class="btn-nexus-outline" (click)="openThesisModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+          + Avance de Tesis
+        </button>
         <button type="button" class="btn-nexus-outline" (click)="openTutoringModal()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
@@ -149,6 +156,12 @@
             </div>
           </div>
         </div>
+
+        <!-- Section: Historical Thesis Comparative Evolution (HU-16) -->
+        <app-thesis-history-chart
+          [studentId]="studentIdNum()"
+          (registerRequested)="openThesisModal()">
+        </app-thesis-history-chart>
 
         <!-- Section: Acuerdos del Semestre -->
         <div class="nexus-card agreements-section">
@@ -276,6 +289,14 @@
               </svg>
               <span>+ Nuevo Acuerdo</span>
             </button>
+
+            <button type="button" class="btn-quick-action btn-quick-action--thesis" (click)="openThesisModal()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              <span>+ Avance de Tesis</span>
+            </button>
           </div>
         </div>
 
@@ -330,7 +351,7 @@
             <span class="thesis-percentage">{{ thesisProgress()?.currentPercentage || student()?.thesisProgressPercent || 0 }}%</span>
           </div>
 
-          <!-- Progress Bar Container -->
+          <!-- Progress Bar Track -->
           <div class="progress-bar-track">
             <div 
               class="progress-bar-fill" 
@@ -388,7 +409,7 @@
 
     </div>
 
-    <!-- ================= LATERAL DRAWER & TUTORING MODAL INTEGRATION ================= -->
+    <!-- ================= LATERAL DRAWER & TUTORING MODAL & THESIS MODAL INTEGRATION ================= -->
     <app-agreement-drawer
       [isOpen]="isDrawerOpen()"
       [mode]="drawerMode()"
@@ -407,6 +428,14 @@
       (closed)="closeTutoringModal()"
       (saved)="onTutoringSessionSaved($event)">
     </app-tutoring-modal>
+
+    <app-thesis-progress-form
+      [isOpen]="isThesisModalOpen()"
+      [studentId]="studentIdNum()"
+      [semesterId]="activeSemesterNum()"
+      (closed)="closeThesisModal()"
+      (progressSaved)="onThesisProgressSaved($event)">
+    </app-thesis-progress-form>
 
   }
 </div>
