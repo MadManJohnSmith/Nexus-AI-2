@@ -16,7 +16,7 @@
         </div>
         <div class="overview-header__details">
           <div class="overview-header__title-row">
-            <h1 class="overview-header__name">{{ student()?.user?.fullName }}</h1>
+            <h1 class="overview-header__name">{{ student()?.nombre_completo || student()?.user?.fullName }}</h1>
             <app-pill-badge [type]="student()?.status === 'ACTIVO' ? 'ACTIVO' : 'INFO'" size="md">
               {{ student()?.status }}
             </app-pill-badge>
@@ -25,9 +25,9 @@
           <div class="overview-header__meta">
             <span><strong>Matrícula:</strong> {{ student()?.matricula }}</span>
             <span class="meta-dot">•</span>
-            <span><strong>Programa:</strong> {{ student()?.program }}</span>
+            <span><strong>Programa:</strong> {{ student()?.programa_doctoral || student()?.program }}</span>
             <span class="meta-dot">•</span>
-            <span><strong>Cohorte:</strong> {{ student()?.cohort }}</span>
+            <span><strong>Cohorte:</strong> {{ student()?.cohorte || student()?.cohort }}</span>
             <span class="meta-dot">•</span>
             <span><strong>Semestre Actual:</strong> {{ student()?.currentSemester }}° Semestre</span>
           </div>
@@ -35,20 +35,19 @@
       </div>
 
       <div class="overview-header__actions">
-        <button type="button" class="btn-nexus-outline" routerLink="/tutoring" [queryParams]="{ studentId: student()?.id }">
+        <button type="button" class="btn-nexus-outline" (click)="openTutoringModal()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
           </svg>
-          Nueva Tutoría
+          + Nueva Tutoría
         </button>
-        <button type="button" class="btn-nexus-primary" routerLink="/reports" [queryParams]="{ studentId: student()?.id }">
+        <button type="button" class="btn-nexus-primary" (click)="openCreateAgreementDrawer()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          Exportar Expediente
+          + Nuevo Acuerdo
         </button>
       </div>
     </header>
@@ -62,16 +61,16 @@
         <!-- Semester Horizontal Navigation Tabs -->
         <nav class="semester-tabs-container" aria-label="Navegación de Semestres">
           <div class="semester-tabs">
-            @for (sem of semesters(); track sem.number) {
+            @for (sem of semesters(); track sem.number || sem.numero) {
               <button 
                 type="button" 
                 class="semester-tab"
-                [class.semester-tab--active]="activeSemester() === sem.number"
-                [class.semester-tab--current]="sem.isCurrent"
-                (click)="selectSemester(sem.number)">
-                <span class="semester-tab__title">Semestre {{ sem.number }}</span>
+                [class.semester-tab--active]="activeSemester() === (sem.number || sem.numero)"
+                [class.semester-tab--current]="sem.isCurrent || sem.is_active"
+                (click)="selectSemester(sem.number || sem.numero)">
+                <span class="semester-tab__title">Semestre {{ sem.number || sem.numero }}</span>
                 <span class="semester-tab__code">{{ sem.code }}</span>
-                @if (sem.isCurrent) {
+                @if (sem.isCurrent || sem.is_active) {
                   <span class="semester-tab__current-badge">Actual</span>
                 }
               </button>
@@ -107,8 +106,8 @@
               }
             </div>
             <div class="semester-summary-card__dates">
-              @if (currentSemesterData()?.startDate) {
-                <span>Periodo: {{ currentSemesterData()?.startDate | date:'mediumDate' }} — {{ currentSemesterData()?.endDate | date:'mediumDate' }}</span>
+              @if (currentSemesterData()?.startDate || currentSemesterData()?.fecha_inicio) {
+                <span>Periodo: {{ (currentSemesterData()?.startDate || currentSemesterData()?.fecha_inicio) | date:'mediumDate' }} — {{ (currentSemesterData()?.endDate || currentSemesterData()?.fecha_fin) | date:'mediumDate' }}</span>
               }
             </div>
           </div>
@@ -137,7 +136,7 @@
               <span class="stat-pill__value">{{ filteredTutoringSessions().length }}</span>
             </div>
             <div class="stat-pill">
-              <span class="stat-pill__label">Acuerdos del Semestre</span>
+              <span class="stat-pill__label">Acuerdos del Periodo</span>
               <span class="stat-pill__value">{{ filteredAgreements().length }}</span>
             </div>
             <div class="stat-pill">
@@ -154,25 +153,44 @@
         <!-- Section: Acuerdos del Semestre -->
         <div class="nexus-card agreements-section">
           <div class="nexus-card__header">
-            <h3>📝 Acuerdos y Compromisos Formales</h3>
-            <span class="badge-counter">{{ filteredAgreements().length }} registros</span>
+            <div class="section-header-left">
+              <h3>📝 Acuerdos y Compromisos Formales</h3>
+              <span class="badge-counter">{{ filteredAgreements().length }} registros</span>
+            </div>
+            <button type="button" class="btn-create-agreement-inline" (click)="openCreateAgreementDrawer()">
+              + Nuevo Acuerdo
+            </button>
           </div>
 
           @if (filteredAgreements().length === 0) {
             <div class="empty-state">
               <p>No se registran acuerdos para este periodo académico.</p>
+              <button type="button" class="btn-nexus-outline" (click)="openCreateAgreementDrawer()">
+                Crear primer acuerdo del periodo
+              </button>
             </div>
           } @else {
             <div class="agreements-list">
               @for (agreement of filteredAgreements(); track agreement.id) {
                 <div class="agreement-item" [class.agreement-item--overdue]="agreement.status === 'VENCIDO'">
                   <div class="agreement-item__header">
-                    <h4 class="agreement-item__title">{{ agreement.title }}</h4>
+                    <div class="agreement-title-box">
+                      <span class="agreement-id-tag">ACU-#{{ agreement.id }}</span>
+                      <h4 class="agreement-item__title">{{ agreement.title }}</h4>
+                    </div>
                     <app-pill-badge [type]="agreement.status" size="sm">
                       {{ agreement.status }}
                     </app-pill-badge>
                   </div>
+                  
                   <p class="agreement-item__desc">{{ agreement.description }}</p>
+                  
+                  @if (agreement.resolutionNotes) {
+                    <div class="agreement-item__resolution">
+                      <strong>Resolución:</strong> {{ agreement.resolutionNotes }}
+                    </div>
+                  }
+
                   <div class="agreement-item__footer">
                     <span class="agreement-item__meta">
                       <strong>Responsable:</strong> {{ agreement.responsibleName }} ({{ agreement.responsibleRole }})
@@ -182,9 +200,21 @@
                     </span>
                     @if (agreement.completionDate) {
                       <span class="agreement-item__meta text-success">
-                        <strong>Completado el:</strong> {{ agreement.completionDate | date:'mediumDate' }}
+                        <strong>Completado:</strong> {{ agreement.completionDate | date:'mediumDate' }}
                       </span>
                     }
+                    
+                    <button 
+                      type="button" 
+                      class="btn-inline-update"
+                      (click)="openUpdateAgreementDrawer(agreement)"
+                      title="Actualizar estado del acuerdo">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                      <span>Actualizar Estado</span>
+                    </button>
                   </div>
                 </div>
               }
@@ -265,6 +295,56 @@
       <!-- ================= RIGHT COLUMN (30%) ================= -->
       <aside class="overview-grid__col-side">
         
+        <!-- ================= RED ALERT BANNER FOR OVERDUE AGREEMENTS ================= -->
+        @if (totalOverdueAgreementsCount() > 0) {
+          <div class="overdue-alert-card" role="alert" aria-live="polite">
+            <div class="overdue-alert-card__icon-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C53030" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <div class="overdue-alert-card__body">
+              <h4 class="overdue-alert-card__title">¡Compromisos Vencidos Detectados!</h4>
+              <p class="overdue-alert-card__text">
+                El estudiante presenta <strong>{{ totalOverdueAgreementsCount() }} acuerdo(s) vencido(s)</strong> que requieren atención prioritaria y actualización formal.
+              </p>
+              <button 
+                type="button" 
+                class="overdue-alert-card__action-btn"
+                routerLink="/agreements" 
+                [queryParams]="{ studentId: student()?.id, status: 'VENCIDO' }">
+                Ver Acuerdos Vencidos ➔
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Quick Actions Panel -->
+        <div class="nexus-card quick-actions-card">
+          <div class="nexus-card__header">
+            <h3>Acciones Rápidas</h3>
+          </div>
+          <div class="quick-actions-grid">
+            <button type="button" class="btn-quick-action btn-quick-action--tutoring" (click)="openTutoringModal()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+              <span>+ Nueva Tutoría</span>
+            </button>
+
+            <button type="button" class="btn-quick-action btn-quick-action--agreement" (click)="openCreateAgreementDrawer()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 11 12 14 22 4"></polyline>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+              <span>+ Nuevo Acuerdo</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Student Fact Sheet Card -->
         <div class="nexus-card student-fact-sheet">
           <div class="nexus-card__header">
@@ -281,7 +361,7 @@
             </div>
             <div class="fact-sheet-item">
               <span class="fact-sheet-item__label">Programa</span>
-              <span class="fact-sheet-item__value">{{ student()?.program }}</span>
+              <span class="fact-sheet-item__value">{{ student()?.programa_doctoral || student()?.program }}</span>
             </div>
             <div class="fact-sheet-item">
               <span class="fact-sheet-item__label">Línea de Investigación</span>
@@ -289,7 +369,7 @@
             </div>
             <div class="fact-sheet-item">
               <span class="fact-sheet-item__label">Cohorte de Ingreso</span>
-              <span class="fact-sheet-item__value">{{ student()?.cohort }}</span>
+              <span class="fact-sheet-item__value">{{ student()?.cohorte || student()?.cohort }}</span>
             </div>
             <div class="fact-sheet-item">
               <span class="fact-sheet-item__label">Fecha de Ingreso</span>
@@ -347,7 +427,7 @@
         <!-- Commitments Quick Summary Card (Semáforo de Acuerdos) -->
         <div class="nexus-card commitments-summary-card">
           <div class="nexus-card__header">
-            <h3>Semáforo de Compromisos</h3>
+            <h3>Acuerdos y Compromisos</h3>
           </div>
 
           <div class="commitments-matrix">
@@ -373,5 +453,26 @@
       </aside>
 
     </div>
+
+    <!-- ================= LATERAL DRAWER & TUTORING MODAL INTEGRATION ================= -->
+    <app-agreement-drawer
+      [isOpen]="isDrawerOpen()"
+      [mode]="drawerMode()"
+      [agreement]="selectedAgreement()"
+      [studentId]="student()?.id"
+      [semesterNumber]="activeSemester() === 'ALL' ? (student()?.currentSemester || 3) : activeSemester()"
+      (closed)="closeAgreementDrawer()"
+      (saved)="onAgreementSaved($event)">
+    </app-agreement-drawer>
+
+    <app-tutoring-modal
+      [isOpen]="isTutoringModalOpen()"
+      [studentId]="student()?.id"
+      [studentName]="student()?.nombre_completo || student()?.user?.fullName"
+      [semesterNumber]="activeSemester() === 'ALL' ? (student()?.currentSemester || 3) : activeSemester()"
+      (closed)="closeTutoringModal()"
+      (saved)="onTutoringSessionSaved($event)">
+    </app-tutoring-modal>
+
   }
 </div>
