@@ -223,73 +223,7 @@
         </div>
 
         <!-- Longitudinal Interactive Timeline (HU-23 Integration) -->
-        <div class="nexus-card timeline-card">
-          <div class="nexus-card__header">
-            <div>
-              <h3>Línea de Tiempo Longitudinal</h3>
-              <p class="section-caption">Trayectoria y trazabilidad cronológica de actividades doctorales</p>
-            </div>
-            <div class="timeline-legend">
-              <span class="legend-item"><span class="legend-icon">📘</span> Tutoría</span>
-              <span class="legend-item"><span class="legend-icon">📝</span> Acuerdo</span>
-              <span class="legend-item"><span class="legend-icon">📊</span> Tesis</span>
-              <span class="legend-item"><span class="legend-icon">📎</span> Evidencia</span>
-              <span class="legend-item"><span class="legend-icon">🎓</span> Producción</span>
-            </div>
-          </div>
-
-          @if (filteredTimelineNodes().length === 0) {
-            <div class="empty-state">
-              <p>No hay eventos registrados en la línea de tiempo para este periodo.</p>
-            </div>
-          } @else {
-            <div class="longitudinal-timeline">
-              @for (node of filteredTimelineNodes(); track node.id) {
-                <div class="timeline-entry timeline-entry--{{ node.type.toLowerCase() }}">
-                  
-                  <!-- Timeline Icon & Connector -->
-                  <div class="timeline-entry__rail">
-                    <div class="timeline-entry__icon-box" [title]="node.type">
-                      {{ getNodeIcon(node.type) }}
-                    </div>
-                    <div class="timeline-entry__line"></div>
-                  </div>
-
-                  <!-- Timeline Content Box -->
-                  <div class="timeline-entry__content">
-                    <div class="timeline-entry__top">
-                      <div class="timeline-entry__heading">
-                        <span class="timeline-entry__type-tag">{{ node.type }}</span>
-                        <h4 class="timeline-entry__title">{{ node.title }}</h4>
-                      </div>
-                      <div class="timeline-entry__badges">
-                        @if (node.badgeType && node.badgeText) {
-                          <app-pill-badge [type]="node.badgeType" size="sm">
-                            {{ node.badgeText }}
-                          </app-pill-badge>
-                        }
-                        <time class="timeline-entry__date">{{ node.date | date:'mediumDate' }}</time>
-                      </div>
-                    </div>
-
-                    @if (node.subtitle) {
-                      <p class="timeline-entry__subtitle">{{ node.subtitle }}</p>
-                    }
-
-                    <p class="timeline-entry__description">{{ node.description }}</p>
-
-                    @if (node.authorName) {
-                      <div class="timeline-entry__author">
-                        <span>Registrado por: <strong>{{ node.authorName }}</strong> ({{ node.authorRole }})</span>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-          }
-        </div>
-
+        <app-timeline [studentId]="studentIdNum()"></app-timeline>
       </section>
 
       <!-- ================= RIGHT COLUMN (30%) ================= -->
