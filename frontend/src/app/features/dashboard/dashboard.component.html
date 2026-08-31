@@ -10,6 +10,20 @@
     </div>
 
     <div class="header-actions">
+      <button 
+        type="button" 
+        class="btn-export-cohort" 
+        (click)="exportCohortExcel()" 
+        [disabled]="isExporting()"
+        title="Exportar archivo Excel con el resumen de la cohorte (.xlsx)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="8" y1="13" x2="16" y2="13"></line>
+          <line x1="8" y1="17" x2="16" y2="17"></line>
+        </svg>
+        <span>Exportar Cohorte (.xlsx)</span>
+      </button>
       <div class="period-pill">
         <span class="period-dot"></span>
         <span>Ciclo Activo: <strong>2024-B</strong></span>
@@ -519,7 +533,23 @@
 
                   <!-- Action -->
                   <td class="text-right">
-                    <div style="display: inline-flex; gap: 6px;">
+                    <div style="display: inline-flex; gap: 6px; align-items: center;">
+                      <button 
+                        type="button" 
+                        class="btn-icon-export" 
+                        (click)="exportStudentExcel(student.id, student.matricula)"
+                        [disabled]="isExporting()"
+                        title="Exportar Expediente Excel (.xlsx)">
+                        📊
+                      </button>
+                      <button 
+                        type="button" 
+                        class="btn-icon-export" 
+                        (click)="exportStudentPdf(student.id, student.matricula)"
+                        [disabled]="isExporting()"
+                        title="Descargar Cédula PDF (.pdf)">
+                        📑
+                      </button>
                       <button 
                         type="button" 
                         class="btn-view-expediente" 

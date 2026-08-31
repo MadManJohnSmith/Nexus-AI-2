@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { StudentService } from '../../core/services/student.service';
 import { ThesisService } from '../../core/services/thesis.service';
+import { ReportingService } from '../../core/services/reporting.service';
 import { StudentDetail, Semester } from '../../core/models/student.model';
 import { TutoringSession } from '../../core/models/tutoring.model';
 import { Agreement } from '../../core/models/agreement.model';
@@ -37,7 +38,11 @@ import { ThesisProgressFormComponent } from '../thesis/thesis-progress-form/thes
 export class StudentOverviewComponent implements OnInit {
   private studentService = inject(StudentService);
   private thesisService = inject(ThesisService);
+  private reportingService = inject(ReportingService);
   private route = inject(ActivatedRoute);
+
+  // Export state
+  readonly isExporting = this.reportingService.exporting;
 
   // Optional route param binding via input or ActivatedRoute
   readonly id = input<string>();
@@ -357,6 +362,19 @@ export class StudentOverviewComponent implements OnInit {
         this.timelineNodes.set(nodes);
       }
     });
+  }
+
+  // Export Actions (HU-28)
+  exportExcel(): void {
+    const s = this.student();
+    if (!s) return;
+    this.reportingService.downloadStudentDossier(Number(s.id), 'xlsx', s.matricula);
+  }
+
+  exportPdf(): void {
+    const s = this.student();
+    if (!s) return;
+    this.reportingService.downloadStudentDossier(Number(s.id), 'pdf', s.matricula);
   }
 
   getNodeIcon(type: string): string {
