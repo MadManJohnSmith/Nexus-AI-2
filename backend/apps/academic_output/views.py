@@ -1,12 +1,14 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Publication, AcademicEvent
+from .models import Publication, AcademicEvent, ResearchStay
 from .serializers import (
     PublicationSerializer,
     PublicationCreateSerializer,
     AcademicEventSerializer,
-    AcademicEventCreateSerializer
+    AcademicEventCreateSerializer,
+    ResearchStaySerializer,
+    ResearchStayCreateSerializer
 )
 from apps.identity.permissions import IsAssignedAdvisorOrStudent
 
@@ -147,6 +149,72 @@ class AcademicEventViewSet(viewsets.ModelViewSet):
             'academic_event_created_id': instance.id,
             'mensaje': 'Evento académico registrado correctamente',
             'academic_event': AcademicEventSerializer(instance, context={'request': request}).data
+        }
+        return Response(response_data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {'details': 'Recurso eliminado correctamente', 'success': True},
+            status=status.HTTP_200_OK
+        )
+
+
+class ResearchStayViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para la gestión y seguimiento de estancias doctorales (HU-19).
+    """
+    permission_classes = [IsAuthenticated, IsAssignedAdvisorOrStudent]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['student__nombre_completo', 'student__matricula', 'institucion_receptora', 'pais', 'responsable_estancia']
+    ordering_fields = ['fecha_inicio', 'fecha_fin', 'created_at']
+    ordering = ['-fecha_inicio', '-created_at']
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return ResearchStay.objects.none()
+
+        qs = ResearchStay.objects.select_related('student', 'evidencia').all()
+
+        # Aislamiento por rol
+        if not (user.is_superuser or getattr(user, 'role', None) == 'COORDINADOR'):
+            if getattr(user, 'role', None) == 'ESTUDIANTE':
+                qs = qs.filter(student__user=user)
+            elif getattr(user, 'role', None) == 'ASESOR':
+                qs = qs.filter(
+                    student__committee_members__user=user,
+                    student__committee_members__is_active=True
+                ).distinct()
+            else:
+                qs = qs.none()
+
+        # Filtros por query params
+        student_id = self.request.query_params.get('student') or self.request.query_params.get('student_id')
+        if student_id:
+            qs = qs.filter(student_id=student_id)
+
+        pais = self.request.query_params.get('pais')
+        if pais:
+            qs = qs.filter(pais__icontains=pais)
+
+        return qs.distinct()
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return ResearchStayCreateSerializer
+        return ResearchStaySerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+
+        response_data = {
+            'research_stay_created_id': instance.id,
+            'mensaje': 'Estancia de investigación registrada correctamente',
+            'research_stay': ResearchStaySerializer(instance, context={'request': request}).data
         }
         return Response(response_data, status=status.HTTP_201_CREATED)
 

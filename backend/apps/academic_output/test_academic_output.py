@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 
 from apps.students.models import Student, Semester, AcademicCommittee
-from apps.academic_output.models import Publication, AcademicEvent
+from apps.academic_output.models import Publication, AcademicEvent, ResearchStay
 from apps.evidence.models import Evidence
 
 User = get_user_model()
@@ -275,3 +275,86 @@ class AcademicOutputTests(APITestCase):
         self.assertEqual(res.data['details'], 'Recurso eliminado correctamente')
         self.assertTrue(res.data['success'])
         self.assertFalse(AcademicEvent.objects.filter(id=ev.id).exists())
+
+    # ----------------- HU-19: ESTANCIAS DE INVESTIGACIÓN -----------------
+    def test_create_research_stay_success(self):
+        self.client.force_authenticate(user=self.advisor_main)
+        payload = {
+            'student': self.student1.id,
+            'institucion_receptora': 'University of Toronto',
+            'pais': 'Canadá',
+            'fecha_inicio': '2025-09-01',
+            'fecha_fin': '2025-11-30',
+            'responsable_estancia': 'Dr. Geoffrey Hinton',
+            'objetivos': 'Desarrollo de modelos neuronales aplicados a bioimágenes.',
+            'resultados': 'Prototipo validado y manuscrito en revisión.'
+        }
+        response = self.client.post('/api/v2/academic-output/research-stays/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('research_stay_created_id', response.data)
+        self.assertEqual(response.data['mensaje'], 'Estancia de investigación registrada correctamente')
+        self.assertEqual(response.data['research_stay']['institucion_receptora'], payload['institucion_receptora'])
+        self.assertEqual(response.data['research_stay']['pais'], 'Canadá')
+
+    def test_create_research_stay_invalid_dates(self):
+        self.client.force_authenticate(user=self.advisor_main)
+        payload = {
+            'student': self.student1.id,
+            'institucion_receptora': 'MIT',
+            'pais': 'Estados Unidos',
+            'fecha_inicio': '2025-10-01',
+            'fecha_fin': '2025-09-01',  # Fin antes que inicio
+            'responsable_estancia': 'Dr. John Doe'
+        }
+        response = self.client.post('/api/v2/academic-output/research-stays/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('fecha_fin', response.data)
+
+    def test_list_research_stays_rbac(self):
+        ResearchStay.objects.create(
+            student=self.student1,
+            institucion_receptora='Oxford',
+            pais='Reino Unido',
+            fecha_inicio='2025-01-10',
+            fecha_fin='2025-03-10',
+            responsable_estancia='Dr. Smith'
+        )
+        ResearchStay.objects.create(
+            student=self.student2,
+            institucion_receptora='Stanford',
+            pais='Estados Unidos',
+            fecha_inicio='2025-02-10',
+            fecha_fin='2025-04-10',
+            responsable_estancia='Dr. Ng'
+        )
+
+        # Asesor 1
+        self.client.force_authenticate(user=self.advisor_main)
+        res = self.client.get('/api/v2/academic-output/research-stays/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        results = res.data.get('results', res.data)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['institucion_receptora'], 'Oxford')
+
+        # Coordinador
+        self.client.force_authenticate(user=self.coordinator)
+        res = self.client.get('/api/v2/academic-output/research-stays/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        results = res.data.get('results', res.data)
+        self.assertEqual(len(results), 2)
+
+    def test_delete_research_stay_success(self):
+        stay = ResearchStay.objects.create(
+            student=self.student1,
+            institucion_receptora='INRAE',
+            pais='Francia',
+            fecha_inicio='2025-05-01',
+            fecha_fin='2025-06-01',
+            responsable_estancia='Dr. Pierre'
+        )
+        self.client.force_authenticate(user=self.coordinator)
+        res = self.client.delete(f'/api/v2/academic-output/research-stays/{stay.id}/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['details'], 'Recurso eliminado correctamente')
+        self.assertTrue(res.data['success'])
+        self.assertFalse(ResearchStay.objects.filter(id=stay.id).exists())
