@@ -8,28 +8,34 @@ export interface ThesisComponents {
 }
 
 export interface ThesisProgress {
-  id: number;
-  student: number;
+  id?: number;
+  student?: number;
   student_nombre?: string;
   student_matricula?: string;
-  semester: number;
+  semester?: number;
   semester_numero?: number;
-  porcentaje_avance: number;
-  componentes_json: ThesisComponents;
-  observaciones: string;
-  fecha_registro: string;
-  created_at: string;
-  updated_at: string;
+  porcentaje_avance?: number;
+  componentes_json?: ThesisComponents;
+  observaciones?: string;
+  fecha_registro?: string;
+  created_at?: string;
+  updated_at?: string;
 
   // CamelCase aliases
   studentId?: number;
   studentName?: string;
   studentMatricula?: string;
+  thesisTitle?: string;
+  researchLine?: string;
+  overallPercentage?: number;
+  chapters?: any[];
+  lastUpdated?: string;
   semesterId?: number;
   semesterNumero?: number;
   currentPercentage?: number;
   percentage?: number;
   components?: ThesisComponents;
+  chapterProgress?: any[];
   summary?: string;
   observations?: string;
   registrationDate?: string;

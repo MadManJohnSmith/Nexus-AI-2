@@ -59,7 +59,7 @@ export class AcademicCommitteeComponent implements OnInit {
   readonly roleOptions: { value: CommitteeRole; label: string; badgeType: 'ACTIVO' | 'INFO' | 'PENDIENTE' | 'DEFAULT' }[] = [
     { value: 'ASESOR_PRINCIPAL', label: 'Asesor Principal / Director', badgeType: 'ACTIVO' },
     { value: 'COASESOR', label: 'Coasesor', badgeType: 'INFO' },
-    { value: 'VOCAL', label: 'Vocal', badgeType: 'DEFAULT' },
+    { value: 'VOCAL', label: 'Vocal', badgeType: 'INFO' },
     { value: 'SECRETARIO', label: 'Secretario', badgeType: 'PENDIENTE' },
   ];
 
@@ -164,9 +164,9 @@ export class AcademicCommitteeComponent implements OnInit {
     return found ? found.label : role;
   }
 
-  getRoleBadgeType(role: CommitteeRole): 'ACTIVO' | 'INFO' | 'PENDIENTE' | 'DEFAULT' {
+  getRoleBadgeType(role: CommitteeRole): 'ACTIVO' | 'INFO' | 'PENDIENTE' {
     const found = this.roleOptions.find(r => r.value === role);
-    return found ? found.badgeType : 'DEFAULT';
+    return found ? (found.badgeType as 'ACTIVO' | 'INFO' | 'PENDIENTE') : 'INFO';
   }
 
   getInitials(name?: string): string {

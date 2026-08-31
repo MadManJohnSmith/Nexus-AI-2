@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MonitoringService } from '../../../core/services/monitoring.service';
-import { TimelineEvent, TimelineNodeType } from '../../../core/models/timeline.model';
+import { TimelineEvent, TimelineNodeType, TimelineObservation } from '../../../core/models/timeline.model';
 import { PillBadgeComponent } from '../pill-badge/pill-badge.component';
 
 @Component({
@@ -98,6 +98,12 @@ export class TimelineComponent implements OnInit, OnChanges {
   closeDrawer(): void {
     this.isDrawerOpen.set(false);
     this.selectedEvent.set(null);
+  }
+
+  getTimelineObservations(obs?: string | TimelineObservation[]): TimelineObservation[] {
+    if (!obs) return [];
+    if (Array.isArray(obs)) return obs;
+    return [{ titulo: 'Observación', contenido: obs, autor: 'Comité Tutorial' }];
   }
 
   getAgreementBadgeType(estado: string): 'PENDIENTE' | 'EN_PROCESO' | 'CONCLUIDO' | 'VENCIDO' {

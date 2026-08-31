@@ -154,6 +154,7 @@ export class StudentOverviewComponent implements OnInit {
           const enrichedAgreements: Agreement[] = [
             {
               id: 1,
+              student: Number(studentId),
               studentId: Number(studentId),
               studentName: detail.nombre_completo || detail.user?.fullName,
               studentMatricula: detail.matricula,
@@ -161,11 +162,16 @@ export class StudentOverviewComponent implements OnInit {
               tutoringSessionTitle: 'Sesión Ordinaria - Revisión Capítulo 3',
               semesterNumber: 3,
               title: 'Completar benchmark comparativo de modelos BERT y RoBERTa',
+              descripcion: 'Completar benchmark comparativo de modelos BERT y RoBERTa',
               description: 'Ejecutar las pruebas experimentales con los corpus de validación y tabular métricas F1 y precisión.',
+              responsable: 101,
+              responsable_nombre: detail.nombre_completo || 'María González López',
               responsibleId: 101,
               responsibleName: detail.nombre_completo || 'María González López',
               responsibleRole: 'Doctorando',
+              fecha_limite: '2024-12-15',
               dueDate: '2024-12-15',
+              estado: 'PENDIENTE',
               status: 'PENDIENTE',
               isOverdue: false,
               createdAt: '2024-11-20T10:30:00Z',
@@ -173,6 +179,7 @@ export class StudentOverviewComponent implements OnInit {
             },
             {
               id: 2,
+              student: Number(studentId),
               studentId: Number(studentId),
               studentName: detail.nombre_completo || detail.user?.fullName,
               studentMatricula: detail.matricula,
@@ -180,11 +187,16 @@ export class StudentOverviewComponent implements OnInit {
               tutoringSessionTitle: 'Sesión Ordinaria - Revisión Capítulo 3',
               semesterNumber: 3,
               title: 'Revisión y retroalimentación del borrador del Capítulo 3',
+              descripcion: 'Revisión y retroalimentación del borrador del Capítulo 3',
               description: 'El comité asesor revisará la sección de metodología experimental y emitirá sugerencias de ajuste.',
+              responsable: 2,
+              responsable_nombre: 'Dr. Roberto Mendoza',
               responsibleId: 2,
               responsibleName: 'Dr. Roberto Mendoza',
               responsibleRole: 'Asesor Principal',
+              fecha_limite: '2024-12-20',
               dueDate: '2024-12-20',
+              estado: 'EN_PROCESO',
               status: 'EN_PROCESO',
               isOverdue: false,
               createdAt: '2024-11-20T10:30:00Z',
@@ -192,6 +204,7 @@ export class StudentOverviewComponent implements OnInit {
             },
             {
               id: 3,
+              student: Number(studentId),
               studentId: Number(studentId),
               studentName: detail.nombre_completo || detail.user?.fullName,
               studentMatricula: detail.matricula,
@@ -199,11 +212,16 @@ export class StudentOverviewComponent implements OnInit {
               tutoringSessionTitle: 'Revisión Extraordinaria de Protocolo',
               semesterNumber: 3,
               title: 'Entrega de constancia de seminario de investigación I',
+              descripcion: 'Entrega de constancia de seminario de investigación I',
               description: 'Cargar el comprobante de asistencia y ponencia aprobada en el seminario departamental.',
+              responsable: 101,
+              responsable_nombre: detail.nombre_completo || 'María González López',
               responsibleId: 101,
               responsibleName: detail.nombre_completo || 'María González López',
               responsibleRole: 'Doctorando',
+              fecha_limite: '2024-10-30',
               dueDate: '2024-10-30',
+              estado: 'VENCIDO',
               status: 'VENCIDO',
               isOverdue: true,
               createdAt: '2024-10-01T09:00:00Z',
@@ -211,6 +229,7 @@ export class StudentOverviewComponent implements OnInit {
             },
             {
               id: 4,
+              student: Number(studentId),
               studentId: Number(studentId),
               studentName: detail.nombre_completo || detail.user?.fullName,
               studentMatricula: detail.matricula,
@@ -218,13 +237,19 @@ export class StudentOverviewComponent implements OnInit {
               tutoringSessionTitle: 'Coloquio Semestral de Avances',
               semesterNumber: 2,
               title: 'Envío de artículo científico a revista Q2 IEEE',
+              descripcion: 'Envío de artículo científico a revista Q2 IEEE',
               description: 'Finalizar formato de doble columna y anexar cartas de coautores para someter al journal.',
+              responsable: 101,
+              responsable_nombre: detail.nombre_completo || 'María González López',
               responsibleId: 101,
               responsibleName: detail.nombre_completo || 'María González López',
               responsibleRole: 'Doctorando',
+              fecha_limite: '2024-05-15',
               dueDate: '2024-05-15',
+              estado: 'CONCLUIDO',
               status: 'CONCLUIDO',
               completionDate: '2024-05-12',
+              fecha_conclusion: '2024-05-12',
               resolutionNotes: 'Artículo sometido exitosamente con folio IEEE-NLP-2024-889.',
               isOverdue: false,
               createdAt: '2024-04-10T11:00:00Z',
@@ -248,7 +273,8 @@ export class StudentOverviewComponent implements OnInit {
     });
   }
 
-  selectSemester(semesterNumber: number | 'ALL'): void {
+  selectSemester(semesterNumber?: number | 'ALL'): void {
+    if (semesterNumber === undefined) return;
     this.activeSemester.set(semesterNumber);
   }
 
@@ -323,18 +349,23 @@ export class StudentOverviewComponent implements OnInit {
       if (nodes && nodes.length > 0) {
         this.timelineNodes.set(nodes);
       } else {
-        const semNum = session.semester_numero ?? session.semesterNumero ?? (typeof session.semester === 'number' ? session.semester : 1);
+        const semNum = session.semester_numero ?? (typeof session.semester === 'number' ? session.semester : 1);
         const newTimelineNode: TimelineNode = {
-          id: session.id || Date.now(),
+          id: String(session.id || Date.now()),
           type: 'TUTORIA',
+          tipo: 'TUTORIA',
           title: `Sesión de Tutoría (${session.modalidad || 'PRESENCIAL'})`,
+          titulo: `Sesión de Tutoría (${session.modalidad || 'PRESENCIAL'})`,
           subtitle: `Semestre ${semNum}`,
           description: session.resumen || 'Sesión de tutoría registrada con acuerdos y observaciones.',
+          descripcion: session.resumen || 'Sesión de tutoría registrada con acuerdos y observaciones.',
           date: session.fecha_sesion || new Date().toISOString().split('T')[0],
+          fecha: session.fecha_sesion || new Date().toISOString().split('T')[0],
           semesterNumber: semNum,
-          authorName: session.created_by_nombre || session.createdByNombre || 'Comité Tutorial',
+          authorName: session.created_by_nombre || 'Comité Tutorial',
           authorRole: 'Comité Tutorial',
           status: 'CONCLUIDO',
+          estado: 'CONCLUIDO',
           badgeText: session.modalidad || 'PRESENCIAL',
           badgeType: 'CONCLUIDO'
         };

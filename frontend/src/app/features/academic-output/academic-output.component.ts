@@ -133,7 +133,8 @@ export class AcademicOutputComponent implements OnInit {
       this.loadAllAcademicOutput();
     });
 
-    this.studentService.getStudents().subscribe(students => {
+    this.studentService.getStudents().subscribe(res => {
+      const students = res?.results || [];
       this.studentsList.set(students);
       if (!this.currentStudent() && students.length > 0) {
         this.selectedStudentId.set(students[0].id);
@@ -196,7 +197,8 @@ export class AcademicOutputComponent implements OnInit {
 
   loadStudentData(): void {
     const id = this.selectedStudentId();
-    this.studentService.getStudentById(id).subscribe(student => {
+    if (!id) return;
+    this.studentService.getStudentById(id).subscribe((student: Student) => {
       this.currentStudent.set(student);
     });
   }

@@ -180,7 +180,7 @@ export class TutoringModalComponent {
       if (updated[index]) {
         updated[index] = {
           ...updated[index],
-          notas
+          notas: notes
         };
       }
       return updated;

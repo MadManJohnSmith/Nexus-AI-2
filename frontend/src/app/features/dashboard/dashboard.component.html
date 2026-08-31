@@ -297,8 +297,8 @@
                   <span class="rule-id">{{ alert.regla_id }}</span>
                 </div>
                 <app-pill-badge 
-                  [tipo]="getSeverityBadgeType(alert.severidad)" 
-                  [texto]="alert.severidad">
+                  [type]="getSeverityBadgeType(alert.severidad)" 
+                  [text]="alert.severidad">
                 </app-pill-badge>
               </div>
 
@@ -526,8 +526,8 @@
                   <!-- Risk Badge -->
                   <td>
                     <app-pill-badge 
-                      [tipo]="getRiskBadgeType(student.nivel_riesgo)" 
-                      [texto]="getRiskLabel(student.nivel_riesgo)">
+                      [type]="getRiskBadgeType(student.nivel_riesgo)" 
+                      [text]="getRiskLabel(student.nivel_riesgo)">
                     </app-pill-badge>
                   </td>
 

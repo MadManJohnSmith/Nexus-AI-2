@@ -23,33 +23,38 @@ export interface AgreementAuditLog {
 
 export interface Agreement {
   id: number;
-  student: number;
+  student?: number;
   student_nombre?: string;
   student_matricula?: string;
   session?: number | null;
-  descripcion: string;
-  responsable: number;
+  descripcion?: string;
+  responsable?: number;
   responsable_nombre?: string;
   responsable_email?: string;
-  fecha_limite: string;
-  estado: AgreementStatus;
+  fecha_limite?: string;
+  estado?: AgreementStatus;
   estado_display?: string;
   fecha_conclusion?: string | null;
   created_by?: number | null;
   created_by_nombre?: string;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
   is_vencido?: boolean;
   audit_logs?: AgreementAuditLog[];
 
   // Aliases opcionales para interoperabilidad UI
+  title?: string;
   studentId?: number;
   studentName?: string;
   studentMatricula?: string;
   tutoringSessionId?: number;
+  tutoringSessionTitle?: string;
+  semesterNumber?: number;
   description?: string;
   responsibleId?: number;
   responsibleName?: string;
+  responsibleRole?: string;
+  resolutionNotes?: string;
   dueDate?: string;
   status?: AgreementStatus;
   completionDate?: string;

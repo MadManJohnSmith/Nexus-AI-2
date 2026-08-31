@@ -3,6 +3,7 @@ export type UserRole = 'ADMIN' | 'COORDINADOR' | 'ASESOR' | 'COASESOR' | 'COMITE
 export interface User {
   id: number;
   email: string;
+  username?: string;
   first_name?: string;
   last_name?: string;
   firstName?: string;

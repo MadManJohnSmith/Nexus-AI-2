@@ -128,7 +128,7 @@
 
               <div class="card-badges">
                 @if (event.tipo === 'ACUERDO') {
-                  <app-pill-badge [tipo]="getAgreementBadgeType(event.estado)" [texto]="event.estado"></app-pill-badge>
+                  <app-pill-badge [type]="getAgreementBadgeType(event.estado)" [text]="event.estado"></app-pill-badge>
                 } @else if (event.tipo === 'TESIS') {
                   <span class="badge-custom badge-tesis">{{ event.estado }}</span>
                 } @else if (event.tipo === 'TUTORIA') {
@@ -207,7 +207,7 @@
         <div class="drawer-status-row">
           <span class="status-label">Estado:</span>
           @if (ev.tipo === 'ACUERDO') {
-            <app-pill-badge [tipo]="getAgreementBadgeType(ev.estado)" [texto]="ev.estado"></app-pill-badge>
+            <app-pill-badge [type]="getAgreementBadgeType(ev.estado)" [text]="ev.estado"></app-pill-badge>
           } @else {
             <span class="status-value-badge" [style.background-color]="ev.color + '15'" [style.color]="ev.color">
               {{ ev.estado }}
@@ -257,11 +257,11 @@
             </div>
           }
 
-          @if (ev.metadata.observaciones && ev.metadata.observaciones.length > 0) {
+          @if (ev.metadata.observaciones && getTimelineObservations(ev.metadata.observaciones).length > 0) {
             <div class="drawer-section">
               <h5 class="section-heading">Observaciones de Avance</h5>
               <div class="observations-list">
-                @for (obs of ev.metadata.observaciones; track obs.titulo) {
+                @for (obs of getTimelineObservations(ev.metadata.observaciones); track $index) {
                   <div class="obs-item">
                     <h6 class="obs-title">{{ obs.titulo }}</h6>
                     <p class="obs-content">{{ obs.contenido }}</p>

@@ -242,15 +242,15 @@
               }
             </div>
             
-            <app-pill-badge [type]="agr.status" size="md">
+            <app-pill-badge [type]="agr.status || 'INFO'" size="md">
               {{ agr.status }}
             </app-pill-badge>
           </div>
 
           <!-- Card Content: Title & Description -->
           <div class="agreement-card__body">
-            <h2 class="agreement-card__title">{{ agr.title }}</h2>
-            <p class="agreement-card__description">{{ agr.description }}</p>
+            <h2 class="agreement-card__title">{{ agr.title || agr.descripcion }}</h2>
+            <p class="agreement-card__description">{{ agr.description || agr.descripcion }}</p>
 
             @if (agr.tutoringSessionTitle) {
               <div class="agreement-card__origin">
@@ -271,23 +271,23 @@
             
             <div class="responsible-info">
               <div class="avatar-circle">
-                {{ getInitials(agr.responsibleName) }}
+                {{ getInitials(agr.responsibleName || agr.responsable_nombre) }}
               </div>
               <div class="responsible-text">
-                <span class="responsible-name">{{ agr.responsibleName }}</span>
-                <span class="responsible-role">{{ agr.responsibleRole }}</span>
+                <span class="responsible-name">{{ agr.responsibleName || agr.responsable_nombre }}</span>
+                <span class="responsible-role">{{ agr.responsibleRole || 'Responsable' }}</span>
               </div>
             </div>
 
             <div class="deadline-info">
               <span class="deadline-label">Fecha Límite:</span>
-              <span class="deadline-val" [class.text-danger]="agr.status === 'VENCIDO'">
-                {{ agr.dueDate | date:'mediumDate' }}
+              <span class="deadline-val" [class.text-danger]="agr.status === 'VENCIDO' || agr.estado === 'VENCIDO'">
+                {{ (agr.dueDate || agr.fecha_limite) | date:'mediumDate' }}
               </span>
               
-              @if (agr.status === 'VENCIDO') {
+              @if (agr.status === 'VENCIDO' || agr.estado === 'VENCIDO') {
                 <span class="urgent-badge urgent-badge--overdue">¡Vencido!</span>
-              } @else if (isDeadlineUrgent(agr.dueDate, agr.status)) {
+              } @else if (isDeadlineUrgent(agr.dueDate || agr.fecha_limite, agr.status || agr.estado)) {
                 <span class="urgent-badge urgent-badge--warning">Próximo a vencer</span>
               }
             </div>
@@ -297,7 +297,7 @@
           <!-- Card Footer: Last updated + Action Button -->
           <footer class="agreement-card__footer">
             <span class="updated-at">
-              Actualizado: {{ agr.updatedAt | date:'shortDate' }}
+              Actualizado: {{ (agr.updatedAt || agr.updated_at) | date:'shortDate' }}
             </span>
 
             <div class="card-actions">
@@ -325,7 +325,7 @@
     [isOpen]="isDrawerOpen()"
     [mode]="drawerMode()"
     [agreement]="selectedAgreement()"
-    [studentId]="selectedStudentId() === 'ALL' ? 1 : selectedStudentId()"
+    [studentId]="selectedStudentId() === 'ALL' ? undefined : +selectedStudentId()"
     (closed)="onDrawerClosed()"
     (saved)="onAgreementSaved($event)">
   </app-agreement-drawer>

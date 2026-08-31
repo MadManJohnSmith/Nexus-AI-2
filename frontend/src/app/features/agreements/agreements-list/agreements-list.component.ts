@@ -61,11 +61,11 @@ export class AgreementsListComponent implements OnInit {
 
     if (query) {
       list = list.filter(a => 
-        a.title.toLowerCase().includes(query) ||
-        a.description.toLowerCase().includes(query) ||
-        a.responsibleName.toLowerCase().includes(query) ||
-        (a.studentName && a.studentName.toLowerCase().includes(query)) ||
-        (a.studentMatricula && a.studentMatricula.toLowerCase().includes(query))
+        (a.title || a.descripcion || '').toLowerCase().includes(query) ||
+        (a.description || a.descripcion || '').toLowerCase().includes(query) ||
+        (a.responsibleName || a.responsable_nombre || '').toLowerCase().includes(query) ||
+        (a.studentName || a.student_nombre || '').toLowerCase().includes(query) ||
+        (a.studentMatricula || a.student_matricula || '').toLowerCase().includes(query)
       );
     }
 
@@ -192,8 +192,8 @@ export class AgreementsListComponent implements OnInit {
     return name.slice(0, 2).toUpperCase();
   }
 
-  isDeadlineUrgent(dueDate: string, status: AgreementStatus): boolean {
-    if (status === 'CONCLUIDO' || status === 'VENCIDO') return false;
+  isDeadlineUrgent(dueDate?: string, status?: AgreementStatus): boolean {
+    if (!dueDate || status === 'CONCLUIDO' || status === 'VENCIDO') return false;
     const now = new Date().getTime();
     const target = new Date(dueDate).getTime();
     const diffDays = (target - now) / (1000 * 60 * 60 * 24);

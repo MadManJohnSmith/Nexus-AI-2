@@ -113,11 +113,22 @@ export interface AlertsResponse {
 }
 
 // Backward compatibility with previous draft
-export interface TimelineNode extends TimelineEvent {
+export interface TimelineNode {
+  id: string;
+  tipo?: TimelineNodeType;
   type?: TimelineNodeType;
+  titulo?: string;
   title?: string;
   subtitle?: string;
+  descripcion?: string;
+  description?: string;
+  fecha?: string;
   date?: string;
+  estado?: string;
+  status?: string;
+  icono?: string;
+  color?: string;
+  metadata?: TimelineMetadata;
   semesterNumber?: number;
   badgeType?: 'PENDIENTE' | 'EN_PROCESO' | 'CONCLUIDO' | 'VENCIDO' | 'ACTIVO' | 'INFO' | 'SUCCESS';
   badgeText?: string;

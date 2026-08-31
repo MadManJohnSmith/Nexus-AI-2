@@ -43,9 +43,9 @@ import { PillBadgeComponent } from '../../shared/components/pill-badge/pill-badg
                 <tr>
                   <td>
                     <div class="student-cell">
-                      <div class="student-avatar">{{ st.user.firstName.charAt(0) }}{{ st.user.lastName.charAt(0) }}</div>
+                      <div class="student-avatar">{{ (st.nombre_completo || st.fullName || st.user?.fullName || st.matricula).charAt(0) }}</div>
                       <div>
-                        <strong>{{ st.user.fullName }}</strong>
+                        <strong>{{ st.nombre_completo || st.fullName || st.user?.fullName || st.matricula }}</strong>
                         <span class="sub-matricula">{{ st.matricula }}</span>
                       </div>
                     </div>
@@ -157,8 +157,8 @@ export class StudentsListComponent implements OnInit {
   readonly students = signal<Student[]>([]);
 
   ngOnInit(): void {
-    this.studentService.getStudents().subscribe(list => {
-      this.students.set(list);
+    this.studentService.getStudents().subscribe(res => {
+      this.students.set(res?.results || []);
     });
   }
 }

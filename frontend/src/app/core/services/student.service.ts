@@ -75,6 +75,15 @@ export class StudentService {
     );
   }
 
+  getStudentById(id: number | string): Observable<Student> {
+    return this.http.get<Student>(`${this.baseUrl}/students/${id}/`).pipe(
+      catchError(() => {
+        const mock = this.getMockStudents().find(s => s.id === Number(id)) || this.getMockStudents()[0];
+        return of(mock);
+      })
+    );
+  }
+
   createStudent(data: StudentCreateRequest): Observable<StudentCreateResponse> {
     this.loading.set(true);
     return this.http.post<StudentCreateResponse>(`${this.baseUrl}/students/`, data).pipe(

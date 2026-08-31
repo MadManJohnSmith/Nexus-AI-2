@@ -84,10 +84,30 @@
     border-color: #D1D5DB;
   }
 
-  &--info {
+  &--info,
+  &--default {
     background-color: #F0F5FF;
     color: #3B82F6;
     border-color: #BFDBFE;
+  }
+
+  &--critico,
+  &--alto {
+    background-color: #FDF2F2;
+    color: #DC2626;
+    border-color: #FCA5A5;
+  }
+
+  &--medio {
+    background-color: #FEF8F3;
+    color: #B57136;
+    border-color: #B57136;
+  }
+
+  &--bajo {
+    background-color: #E9FEF1;
+    color: #437E5C;
+    border-color: #437E5C;
   }
 
   &--success {
