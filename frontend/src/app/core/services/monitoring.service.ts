@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { AlertsResponse, AlertItem, TimelineResponse } from '../models/timeline.model';
+import { CoordinatorDashboardResponse } from '../models/dashboard.model';
 
 @Injectable({
   providedIn: 'root'
@@ -54,10 +55,17 @@ export class MonitoringService {
 
   /**
    * Obtiene la trayectoria longitudinal completa de un estudiante unificando tutorías,
-   * acuerdos, tesis y evidencias.
+   * acuerdos, tesis, evidencias, publicaciones, congresos, estancias y productos.
    */
   getTimeline(studentId: number): Observable<TimelineResponse> {
     const params = new HttpParams().set('student', studentId.toString());
     return this.http.get<TimelineResponse>(`${this.apiUrl}/timeline/`, { params });
+  }
+
+  /**
+   * Obtiene las métricas institucionales, semáforos de riesgo y tabla priorizada del Dashboard del Coordinador.
+   */
+  getCoordinatorDashboard(): Observable<CoordinatorDashboardResponse> {
+    return this.http.get<CoordinatorDashboardResponse>(`${this.apiUrl}/coordinator-dashboard/`);
   }
 }

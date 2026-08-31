@@ -1,14 +1,16 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Publication, AcademicEvent, ResearchStay
+from .models import Publication, AcademicEvent, ResearchStay, OtherProduct
 from .serializers import (
     PublicationSerializer,
     PublicationCreateSerializer,
     AcademicEventSerializer,
     AcademicEventCreateSerializer,
     ResearchStaySerializer,
-    ResearchStayCreateSerializer
+    ResearchStayCreateSerializer,
+    OtherProductSerializer,
+    OtherProductCreateSerializer
 )
 from apps.identity.permissions import IsAssignedAdvisorOrStudent
 
@@ -215,6 +217,72 @@ class ResearchStayViewSet(viewsets.ModelViewSet):
             'research_stay_created_id': instance.id,
             'mensaje': 'Estancia de investigación registrada correctamente',
             'research_stay': ResearchStaySerializer(instance, context={'request': request}).data
+        }
+        return Response(response_data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {'details': 'Recurso eliminado correctamente', 'success': True},
+            status=status.HTTP_200_OK
+        )
+
+
+class OtherProductViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para la gestión de otros productos académicos: patentes, software, prototipos (HU-20).
+    """
+    permission_classes = [IsAuthenticated, IsAssignedAdvisorOrStudent]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['student__nombre_completo', 'student__matricula', 'titulo', 'descripcion']
+    ordering_fields = ['fecha_registro', 'created_at', 'titulo']
+    ordering = ['-fecha_registro', '-created_at']
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return OtherProduct.objects.none()
+
+        qs = OtherProduct.objects.select_related('student', 'evidencia').all()
+
+        # Aislamiento por rol
+        if not (user.is_superuser or getattr(user, 'role', None) == 'COORDINADOR'):
+            if getattr(user, 'role', None) == 'ESTUDIANTE':
+                qs = qs.filter(student__user=user)
+            elif getattr(user, 'role', None) == 'ASESOR':
+                qs = qs.filter(
+                    student__committee_members__user=user,
+                    student__committee_members__is_active=True
+                ).distinct()
+            else:
+                qs = qs.none()
+
+        # Filtros por query params
+        student_id = self.request.query_params.get('student') or self.request.query_params.get('student_id')
+        if student_id:
+            qs = qs.filter(student_id=student_id)
+
+        tipo_producto = self.request.query_params.get('tipo_producto')
+        if tipo_producto:
+            qs = qs.filter(tipo_producto=tipo_producto)
+
+        return qs.distinct()
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return OtherProductCreateSerializer
+        return OtherProductSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+
+        response_data = {
+            'other_product_created_id': instance.id,
+            'mensaje': 'Producto académico registrado correctamente',
+            'other_product': OtherProductSerializer(instance, context={'request': request}).data
         }
         return Response(response_data, status=status.HTTP_201_CREATED)
 

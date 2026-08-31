@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Publication, AcademicEvent, ResearchStay
+from .models import Publication, AcademicEvent, ResearchStay, OtherProduct
 from apps.students.models import Student, Semester
 from apps.evidence.models import Evidence
 
@@ -219,3 +219,55 @@ class ResearchStayCreateSerializer(serializers.ModelSerializer):
                 'fecha_fin': "La fecha de fin no puede ser anterior a la fecha de inicio."
             })
         return attrs
+
+
+class OtherProductSerializer(serializers.ModelSerializer):
+    student_nombre = serializers.CharField(source='student.nombre_completo', read_only=True)
+    student_matricula = serializers.CharField(source='student.matricula', read_only=True)
+    tipo_producto_display = serializers.CharField(source='get_tipo_producto_display', read_only=True)
+    evidencia_titulo = serializers.CharField(source='evidencia.titulo', read_only=True)
+
+    class Meta:
+        model = OtherProduct
+        fields = [
+            'id',
+            'student',
+            'student_nombre',
+            'student_matricula',
+            'tipo_producto',
+            'tipo_producto_display',
+            'titulo',
+            'descripcion',
+            'fecha_registro',
+            'evidencia',
+            'evidencia_titulo',
+            'created_at',
+            'updated_at'
+        ]
+        read_only_fields = [
+            'id',
+            'student_nombre',
+            'student_matricula',
+            'tipo_producto_display',
+            'evidencia_titulo',
+            'created_at',
+            'updated_at'
+        ]
+
+
+class OtherProductCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OtherProduct
+        fields = [
+            'id',
+            'student',
+            'tipo_producto',
+            'titulo',
+            'descripcion',
+            'fecha_registro',
+            'evidencia'
+        ]
+        extra_kwargs = {
+            'fecha_registro': {'required': False},
+            'evidencia': {'required': False, 'allow_null': True}
+        }

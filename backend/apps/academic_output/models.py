@@ -280,3 +280,69 @@ class ResearchStay(models.Model):
 
     def __str__(self):
         return f"{self.student.matricula} - {self.institucion_receptora} ({self.pais})"
+
+
+class OtherProduct(models.Model):
+    """
+    Modelo para el registro de otros productos académicos: software, patentes,
+    prototipos y bases de datos científicas (HU-20).
+    """
+    TIPO_SOFTWARE = 'SOFTWARE'
+    TIPO_PROTOTIPO = 'PROTOTIPO'
+    TIPO_PATENTE = 'PATENTE'
+    TIPO_BASE_DATOS = 'BASE_DATOS'
+    TIPO_OTRO = 'OTRO'
+    TIPO_PRODUCTO_CHOICES = (
+        (TIPO_SOFTWARE, _('Desarrollo de Software')),
+        (TIPO_PROTOTIPO, _('Prototipo Físico / Industrial')),
+        (TIPO_PATENTE, _('Propiedad Intelectual / Patente')),
+        (TIPO_BASE_DATOS, _('Base de Datos de Investigación')),
+        (TIPO_OTRO, _('Otro')),
+    )
+
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        related_name='other_products',
+        db_index=True,
+        verbose_name=_('estudiante')
+    )
+    tipo_producto = models.CharField(
+        _('tipo de producto'),
+        max_length=30,
+        choices=TIPO_PRODUCTO_CHOICES
+    )
+    titulo = models.CharField(
+        _('título del producto'),
+        max_length=255
+    )
+    descripcion = models.TextField(
+        _('descripción y características')
+    )
+    fecha_registro = models.DateField(
+        _('fecha de registro'),
+        default=timezone.now,
+        db_index=True
+    )
+    evidencia = models.ForeignKey(
+        Evidence,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='other_products',
+        verbose_name=_('evidencia')
+    )
+    created_at = models.DateTimeField(_('fecha de creación'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('última actualización'), auto_now=True)
+
+    class Meta:
+        verbose_name = _('otro producto académico')
+        verbose_name_plural = _('otros productos académicos')
+        ordering = ['-fecha_registro', '-created_at']
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.student.matricula} - {self.titulo} ({self.get_tipo_producto_display()})"

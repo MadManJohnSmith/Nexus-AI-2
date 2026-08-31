@@ -37,6 +37,21 @@ describe('TimelineComponent', () => {
         responsable: 'Juan Pérez',
         fecha_limite: '2025-02-22'
       }
+    },
+    {
+      id: 'publicacion-1',
+      tipo: 'PUBLICACION',
+      titulo: 'Publicación: Deep Learning for Healthcare',
+      descripcion: 'Artículo JCR en IEEE Transactions',
+      fecha: '2025-02-25',
+      estado: 'PUBLICADO',
+      icono: '🎓',
+      color: '#6365EF',
+      metadata: {
+        revista_editorial: 'IEEE Transactions',
+        doi_url: 'https://doi.org/10.1109/test',
+        autores: 'Juan Pérez, Dra. Elena Vargas'
+      }
     }
   ];
 
@@ -44,7 +59,7 @@ describe('TimelineComponent', () => {
     mockMonitoringService = jasmine.createSpyObj('MonitoringService', ['getTimeline']);
     mockMonitoringService.getTimeline.and.returnValue(of({
       student_id: 1,
-      total_eventos: 2,
+      total_eventos: 3,
       timeline: mockEvents
     }));
 
@@ -67,7 +82,7 @@ describe('TimelineComponent', () => {
     component.studentId = 1;
     component.ngOnInit();
     expect(mockMonitoringService.getTimeline).toHaveBeenCalledWith(1);
-    expect(component.events().length).toBe(2);
+    expect(component.events().length).toBe(3);
   });
 
   it('should filter events when filter is set', () => {
@@ -75,12 +90,26 @@ describe('TimelineComponent', () => {
     component.setFilter('ACUERDO');
     expect(component.filteredEvents().length).toBe(1);
     expect(component.filteredEvents()[0].tipo).toBe('ACUERDO');
+
+    component.setFilter('PUBLICACION');
+    expect(component.filteredEvents().length).toBe(1);
+    expect(component.filteredEvents()[0].tipo).toBe('PUBLICACION');
+  });
+
+  it('should calculate counts correctly for all types', () => {
+    component.events.set(mockEvents);
+    const counts = component.counts();
+    expect(counts.TODOS).toBe(3);
+    expect(counts.TUTORIA).toBe(1);
+    expect(counts.ACUERDO).toBe(1);
+    expect(counts.PUBLICACION).toBe(1);
+    expect(counts.CONGRESO).toBe(0);
   });
 
   it('should open and close flyout drawer on event click', () => {
-    component.openDrawer(mockEvents[0]);
+    component.openDrawer(mockEvents[2]);
     expect(component.isDrawerOpen()).toBeTrue();
-    expect(component.selectedEvent()?.id).toBe('tutoria-1');
+    expect(component.selectedEvent()?.id).toBe('publicacion-1');
 
     component.closeDrawer();
     expect(component.isDrawerOpen()).toBeFalse();
