@@ -1,0 +1,51 @@
+import { Routes } from '@angular/router';
+
+export const routes: Routes = [
+  {
+    path: 'login',
+    loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent)
+  },
+  {
+    path: '',
+    loadComponent: () => import('./shared/components/app-shell/app-shell.component').then(m => m.AppShellComponent),
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: 'students/1'
+      },
+      {
+        path: 'students',
+        loadComponent: () => import('./features/students-list/students-list.component').then(m => m.StudentsListComponent)
+      },
+      {
+        path: 'students/:id',
+        loadComponent: () => import('./features/student-overview/student-overview.component').then(m => m.StudentOverviewComponent)
+      },
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./features/students-list/students-list.component').then(m => m.StudentsListComponent)
+      },
+      {
+        path: 'tutoring',
+        loadComponent: () => import('./features/student-overview/student-overview.component').then(m => m.StudentOverviewComponent)
+      },
+      {
+        path: 'agreements',
+        loadComponent: () => import('./features/student-overview/student-overview.component').then(m => m.StudentOverviewComponent)
+      },
+      {
+        path: 'academic-output',
+        loadComponent: () => import('./features/student-overview/student-overview.component').then(m => m.StudentOverviewComponent)
+      },
+      {
+        path: 'reports',
+        loadComponent: () => import('./features/student-overview/student-overview.component').then(m => m.StudentOverviewComponent)
+      }
+    ]
+  },
+  {
+    path: '**',
+    redirectTo: ''
+  }
+];

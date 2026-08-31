@@ -1,0 +1,377 @@
+<div class="student-overview-page">
+  
+  <!-- Loading state -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <p>Cargando expediente doctoral...</p>
+    </div>
+  } @else if (student()) {
+
+    <!-- ================= PAGE HEADER ================= -->
+    <header class="overview-header">
+      <div class="overview-header__main">
+        <div class="overview-header__avatar">
+          {{ student()?.user?.firstName?.charAt(0) }}{{ student()?.user?.lastName?.charAt(0) }}
+        </div>
+        <div class="overview-header__details">
+          <div class="overview-header__title-row">
+            <h1 class="overview-header__name">{{ student()?.user?.fullName }}</h1>
+            <app-pill-badge [type]="student()?.status === 'ACTIVO' ? 'ACTIVO' : 'INFO'" size="md">
+              {{ student()?.status }}
+            </app-pill-badge>
+          </div>
+          <p class="overview-header__thesis">{{ student()?.thesisTitle }}</p>
+          <div class="overview-header__meta">
+            <span><strong>Matrícula:</strong> {{ student()?.matricula }}</span>
+            <span class="meta-dot">•</span>
+            <span><strong>Programa:</strong> {{ student()?.program }}</span>
+            <span class="meta-dot">•</span>
+            <span><strong>Cohorte:</strong> {{ student()?.cohort }}</span>
+            <span class="meta-dot">•</span>
+            <span><strong>Semestre Actual:</strong> {{ student()?.currentSemester }}° Semestre</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="overview-header__actions">
+        <button type="button" class="btn-nexus-outline" routerLink="/tutoring" [queryParams]="{ studentId: student()?.id }">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          Nueva Tutoría
+        </button>
+        <button type="button" class="btn-nexus-primary" routerLink="/reports" [queryParams]="{ studentId: student()?.id }">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Exportar Expediente
+        </button>
+      </div>
+    </header>
+
+    <!-- ================= GRID 70 / 30 LAYOUT ================= -->
+    <div class="overview-grid">
+      
+      <!-- ================= LEFT COLUMN (70%) ================= -->
+      <section class="overview-grid__col-main">
+        
+        <!-- Semester Horizontal Navigation Tabs -->
+        <nav class="semester-tabs-container" aria-label="Navegación de Semestres">
+          <div class="semester-tabs">
+            @for (sem of semesters(); track sem.number) {
+              <button 
+                type="button" 
+                class="semester-tab"
+                [class.semester-tab--active]="activeSemester() === sem.number"
+                [class.semester-tab--current]="sem.isCurrent"
+                (click)="selectSemester(sem.number)">
+                <span class="semester-tab__title">Semestre {{ sem.number }}</span>
+                <span class="semester-tab__code">{{ sem.code }}</span>
+                @if (sem.isCurrent) {
+                  <span class="semester-tab__current-badge">Actual</span>
+                }
+              </button>
+            }
+            <button 
+              type="button" 
+              class="semester-tab semester-tab--all"
+              [class.semester-tab--active]="activeSemester() === 'ALL'"
+              (click)="selectSemester('ALL')">
+              <span class="semester-tab__title">Todos</span>
+              <span class="semester-tab__code">Trayectoria Global</span>
+            </button>
+          </div>
+        </nav>
+
+        <!-- Active Semester Summary Card -->
+        <div class="nexus-card semester-summary-card">
+          <div class="nexus-card__header">
+            <div class="semester-summary-card__title-box">
+              <h3>
+                @if (activeSemester() === 'ALL') {
+                  Resumen Global de la Trayectoria Doctoral
+                } @else {
+                  Resumen del Semestre {{ activeSemester() }} ({{ currentSemesterData()?.code }})
+                }
+              </h3>
+              @if (currentSemesterData()?.status) {
+                <app-pill-badge 
+                  [type]="currentSemesterData()?.status === 'CONCLUIDO' ? 'CONCLUIDO' : currentSemesterData()?.status === 'EN_CURSO' ? 'EN_PROCESO' : 'PENDIENTE'" 
+                  size="sm">
+                  {{ currentSemesterData()?.status === 'EN_CURSO' ? 'En Curso' : currentSemesterData()?.status === 'CONCLUIDO' ? 'Concluido' : 'Pendiente' }}
+                </app-pill-badge>
+              }
+            </div>
+            <div class="semester-summary-card__dates">
+              @if (currentSemesterData()?.startDate) {
+                <span>Periodo: {{ currentSemesterData()?.startDate | date:'mediumDate' }} — {{ currentSemesterData()?.endDate | date:'mediumDate' }}</span>
+              }
+            </div>
+          </div>
+
+          <!-- Objectives / Metas del Semestre -->
+          @if (currentSemesterData()?.objectives && currentSemesterData()?.objectives!.length > 0) {
+            <div class="semester-objectives">
+              <h4 class="section-subtitle">🎯 Metas y Objetivos Académicos del Semestre</h4>
+              <ul class="objectives-list">
+                @for (obj of currentSemesterData()?.objectives; track obj) {
+                  <li class="objectives-list__item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6365EF" stroke-width="2.5">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>{{ obj }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+
+          <!-- Semester Operational Stats -->
+          <div class="semester-stats-row">
+            <div class="stat-pill">
+              <span class="stat-pill__label">Tutorías Realizadas</span>
+              <span class="stat-pill__value">{{ filteredTutoringSessions().length }}</span>
+            </div>
+            <div class="stat-pill">
+              <span class="stat-pill__label">Acuerdos del Semestre</span>
+              <span class="stat-pill__value">{{ filteredAgreements().length }}</span>
+            </div>
+            <div class="stat-pill">
+              <span class="stat-pill__label">Concluidos</span>
+              <span class="stat-pill__value text-success">{{ concludedAgreementsCount() }}</span>
+            </div>
+            <div class="stat-pill">
+              <span class="stat-pill__label">Vencidos / Alerta</span>
+              <span class="stat-pill__value text-danger">{{ overdueAgreementsCount() }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Acuerdos del Semestre -->
+        <div class="nexus-card agreements-section">
+          <div class="nexus-card__header">
+            <h3>📝 Acuerdos y Compromisos Formales</h3>
+            <span class="badge-counter">{{ filteredAgreements().length }} registros</span>
+          </div>
+
+          @if (filteredAgreements().length === 0) {
+            <div class="empty-state">
+              <p>No se registran acuerdos para este periodo académico.</p>
+            </div>
+          } @else {
+            <div class="agreements-list">
+              @for (agreement of filteredAgreements(); track agreement.id) {
+                <div class="agreement-item" [class.agreement-item--overdue]="agreement.status === 'VENCIDO'">
+                  <div class="agreement-item__header">
+                    <h4 class="agreement-item__title">{{ agreement.title }}</h4>
+                    <app-pill-badge [type]="agreement.status" size="sm">
+                      {{ agreement.status }}
+                    </app-pill-badge>
+                  </div>
+                  <p class="agreement-item__desc">{{ agreement.description }}</p>
+                  <div class="agreement-item__footer">
+                    <span class="agreement-item__meta">
+                      <strong>Responsable:</strong> {{ agreement.responsibleName }} ({{ agreement.responsibleRole }})
+                    </span>
+                    <span class="agreement-item__meta" [class.text-danger]="agreement.status === 'VENCIDO'">
+                      <strong>Fecha Límite:</strong> {{ agreement.dueDate | date:'mediumDate' }}
+                    </span>
+                    @if (agreement.completionDate) {
+                      <span class="agreement-item__meta text-success">
+                        <strong>Completado el:</strong> {{ agreement.completionDate | date:'mediumDate' }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Longitudinal Interactive Timeline (HU-23 Integration) -->
+        <div class="nexus-card timeline-card">
+          <div class="nexus-card__header">
+            <div>
+              <h3>Línea de Tiempo Longitudinal</h3>
+              <p class="section-caption">Trayectoria y trazabilidad cronológica de actividades doctorales</p>
+            </div>
+            <div class="timeline-legend">
+              <span class="legend-item"><span class="legend-icon">📘</span> Tutoría</span>
+              <span class="legend-item"><span class="legend-icon">📝</span> Acuerdo</span>
+              <span class="legend-item"><span class="legend-icon">📊</span> Tesis</span>
+              <span class="legend-item"><span class="legend-icon">📎</span> Evidencia</span>
+              <span class="legend-item"><span class="legend-icon">🎓</span> Producción</span>
+            </div>
+          </div>
+
+          @if (filteredTimelineNodes().length === 0) {
+            <div class="empty-state">
+              <p>No hay eventos registrados en la línea de tiempo para este periodo.</p>
+            </div>
+          } @else {
+            <div class="longitudinal-timeline">
+              @for (node of filteredTimelineNodes(); track node.id) {
+                <div class="timeline-entry timeline-entry--{{ node.type.toLowerCase() }}">
+                  
+                  <!-- Timeline Icon & Connector -->
+                  <div class="timeline-entry__rail">
+                    <div class="timeline-entry__icon-box" [title]="node.type">
+                      {{ getNodeIcon(node.type) }}
+                    </div>
+                    <div class="timeline-entry__line"></div>
+                  </div>
+
+                  <!-- Timeline Content Box -->
+                  <div class="timeline-entry__content">
+                    <div class="timeline-entry__top">
+                      <div class="timeline-entry__heading">
+                        <span class="timeline-entry__type-tag">{{ node.type }}</span>
+                        <h4 class="timeline-entry__title">{{ node.title }}</h4>
+                      </div>
+                      <div class="timeline-entry__badges">
+                        @if (node.badgeType && node.badgeText) {
+                          <app-pill-badge [type]="node.badgeType" size="sm">
+                            {{ node.badgeText }}
+                          </app-pill-badge>
+                        }
+                        <time class="timeline-entry__date">{{ node.date | date:'mediumDate' }}</time>
+                      </div>
+                    </div>
+
+                    @if (node.subtitle) {
+                      <p class="timeline-entry__subtitle">{{ node.subtitle }}</p>
+                    }
+
+                    <p class="timeline-entry__description">{{ node.description }}</p>
+
+                    @if (node.authorName) {
+                      <div class="timeline-entry__author">
+                        <span>Registrado por: <strong>{{ node.authorName }}</strong> ({{ node.authorRole }})</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+      </section>
+
+      <!-- ================= RIGHT COLUMN (30%) ================= -->
+      <aside class="overview-grid__col-side">
+        
+        <!-- Student Fact Sheet Card -->
+        <div class="nexus-card student-fact-sheet">
+          <div class="nexus-card__header">
+            <h3>Ficha del Doctorando</h3>
+            <app-pill-badge [type]="student()?.status === 'ACTIVO' ? 'ACTIVO' : 'INFO'" size="sm">
+              {{ student()?.status }}
+            </app-pill-badge>
+          </div>
+
+          <div class="fact-sheet-list">
+            <div class="fact-sheet-item">
+              <span class="fact-sheet-item__label">Matrícula</span>
+              <span class="fact-sheet-item__value font-mono">{{ student()?.matricula }}</span>
+            </div>
+            <div class="fact-sheet-item">
+              <span class="fact-sheet-item__label">Programa</span>
+              <span class="fact-sheet-item__value">{{ student()?.program }}</span>
+            </div>
+            <div class="fact-sheet-item">
+              <span class="fact-sheet-item__label">Línea de Investigación</span>
+              <span class="fact-sheet-item__value">{{ student()?.researchLine }}</span>
+            </div>
+            <div class="fact-sheet-item">
+              <span class="fact-sheet-item__label">Cohorte de Ingreso</span>
+              <span class="fact-sheet-item__value">{{ student()?.cohort }}</span>
+            </div>
+            <div class="fact-sheet-item">
+              <span class="fact-sheet-item__label">Fecha de Ingreso</span>
+              <span class="fact-sheet-item__value">{{ student()?.enrollmentDate | date:'mediumDate' }}</span>
+            </div>
+            <div class="fact-sheet-item">
+              <span class="fact-sheet-item__label">Graduación Estimada</span>
+              <span class="fact-sheet-item__value">{{ student()?.expectedGraduationDate | date:'mediumDate' }}</span>
+            </div>
+            <div class="fact-sheet-item">
+              <span class="fact-sheet-item__label">Última Tutoría</span>
+              <span class="fact-sheet-item__value">{{ student()?.lastTutoringDate ? (student()?.lastTutoringDate | date:'mediumDate') : 'Sin registro previo' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tutorial Committee Summary Card (HU-04) -->
+        <app-academic-committee [studentId]="student()?.id!"></app-academic-committee>
+
+        <!-- General Thesis Progress Card -->
+        <div class="nexus-card thesis-progress-card">
+          <div class="nexus-card__header">
+            <h3>Avance de Tesis</h3>
+            <span class="thesis-percentage">{{ thesisProgress()?.currentPercentage || student()?.thesisProgressPercent || 0 }}%</span>
+          </div>
+
+          <!-- Progress Bar Container -->
+          <div class="progress-bar-track">
+            <div 
+              class="progress-bar-fill" 
+              [style.width.%]="thesisProgress()?.currentPercentage || student()?.thesisProgressPercent || 0">
+            </div>
+          </div>
+          
+          <p class="thesis-summary-text">{{ thesisProgress()?.summary }}</p>
+
+          <!-- Chapter Breakdown -->
+          @if (thesisProgress()?.chapterProgress) {
+            <div class="chapter-progress-list">
+              @for (chap of thesisProgress()?.chapterProgress; track chap.chapterNumber) {
+                <div class="chapter-item">
+                  <div class="chapter-item__header">
+                    <span class="chapter-item__title">Cap. {{ chap.chapterNumber }}: {{ chap.title }}</span>
+                    <span class="chapter-item__percent">{{ chap.percentage }}%</span>
+                  </div>
+                  <div class="chapter-bar-track">
+                    <div class="chapter-bar-fill" [style.width.%]="chap.percentage" [class.chapter-bar-fill--complete]="chap.percentage === 100"></div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Commitments Quick Summary Card (Semáforo de Acuerdos) -->
+        <div class="nexus-card commitments-summary-card">
+          <div class="nexus-card__header">
+            <h3>Semáforo de Compromisos</h3>
+          </div>
+
+          <div class="commitments-matrix">
+            <div class="commitment-badge-box commitment-badge-box--pending">
+              <span class="commitment-badge-box__label">Pendientes</span>
+              <span class="commitment-badge-box__count">{{ pendingAgreementsCount() }}</span>
+            </div>
+            <div class="commitment-badge-box commitment-badge-box--in-progress">
+              <span class="commitment-badge-box__label">En Proceso</span>
+              <span class="commitment-badge-box__count">{{ inProgressAgreementsCount() }}</span>
+            </div>
+            <div class="commitment-badge-box commitment-badge-box--concluded">
+              <span class="commitment-badge-box__label">Concluidos</span>
+              <span class="commitment-badge-box__count">{{ concludedAgreementsCount() }}</span>
+            </div>
+            <div class="commitment-badge-box commitment-badge-box--overdue">
+              <span class="commitment-badge-box__label">Vencidos</span>
+              <span class="commitment-badge-box__count">{{ overdueAgreementsCount() }}</span>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+    </div>
+  }
+</div>
