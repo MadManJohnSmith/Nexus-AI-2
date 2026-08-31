@@ -248,11 +248,18 @@ export class StudentOverviewComponent implements OnInit {
   }
 
   onAgreementSaved(savedAgr: Agreement): void {
+    const studentId = String(savedAgr.studentId || this.student()?.id || '1');
     if (this.drawerMode() === 'CREATE') {
       this.agreements.update(list => [savedAgr, ...list]);
     } else {
       this.agreements.update(list => list.map(a => a.id === savedAgr.id ? savedAgr : a));
     }
+    // Refresh timeline after agreement updates
+    this.studentService.getStudentTimeline(studentId).subscribe(nodes => {
+      if (nodes && nodes.length > 0) {
+        this.timelineNodes.set(nodes);
+      }
+    });
   }
 
   // Tutoring Modal Actions
@@ -265,7 +272,48 @@ export class StudentOverviewComponent implements OnInit {
   }
 
   onTutoringSessionSaved(session: TutoringSession): void {
-    this.tutoringSessions.update(list => [session, ...list]);
+    const studentId = String(session.student || this.student()?.id || '1');
+    
+    // Add new session immediately to local reactive signal
+    this.tutoringSessions.update(list => [session, ...list.filter(s => s.id !== session.id)]);
+    
+    // Refresh tutoring sessions from backend
+    this.studentService.getTutoringSessions(studentId).subscribe(sessions => {
+      if (sessions && sessions.length > 0) {
+        this.tutoringSessions.set(sessions);
+      }
+    });
+
+    // Refresh agreements reactively
+    this.studentService.getAgreements(studentId).subscribe(agreements => {
+      if (agreements && agreements.length > 0) {
+        this.agreements.set(agreements);
+      }
+    });
+
+    // Refresh longitudinal timeline nodes reactively
+    this.studentService.getStudentTimeline(studentId).subscribe(nodes => {
+      if (nodes && nodes.length > 0) {
+        this.timelineNodes.set(nodes);
+      } else {
+        const semNum = session.semester_numero ?? session.semesterNumero ?? (typeof session.semester === 'number' ? session.semester : 1);
+        const newTimelineNode: TimelineNode = {
+          id: session.id || Date.now(),
+          type: 'TUTORIA',
+          title: `Sesión de Tutoría (${session.modalidad || 'PRESENCIAL'})`,
+          subtitle: `Semestre ${semNum}`,
+          description: session.resumen || 'Sesión de tutoría registrada con acuerdos y observaciones.',
+          date: session.fecha_sesion || new Date().toISOString().split('T')[0],
+          semesterNumber: semNum,
+          authorName: session.created_by_nombre || session.createdByNombre || 'Comité Tutorial',
+          authorRole: 'Comité Tutorial',
+          status: 'CONCLUIDO',
+          badgeText: session.modalidad || 'PRESENCIAL',
+          badgeType: 'CONCLUIDO'
+        };
+        this.timelineNodes.update(currentNodes => [newTimelineNode, ...currentNodes]);
+      }
+    });
   }
 
   getNodeIcon(type: string): string {
