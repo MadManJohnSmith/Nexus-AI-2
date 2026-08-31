@@ -1,8 +1,9 @@
-import { Component, signal, computed, inject, ChangeDetectionStrategy, HostListener } from '@angular/core';
+import { Component, signal, computed, inject, ChangeDetectionStrategy, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { MonitoringService } from '../../../core/services/monitoring.service';
 import { UserRole } from '../../../core/models/user.model';
 import { PillBadgeComponent } from '../pill-badge/pill-badge.component';
 
@@ -27,8 +28,9 @@ export interface BreadcrumbItem {
   styleUrls: ['./app-shell.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AppShellComponent {
+export class AppShellComponent implements OnInit {
   readonly authService = inject(AuthService);
+  readonly monitoringService = inject(MonitoringService);
   private router = inject(Router);
   private activatedRoute = inject(ActivatedRoute);
 
@@ -36,8 +38,9 @@ export class AppShellComponent {
   readonly isSidebarCollapsed = signal<boolean>(false);
   readonly isMobileMenuOpen = signal<boolean>(false);
   readonly isProfileMenuOpen = signal<boolean>(false);
+  readonly isNotificationsMenuOpen = signal<boolean>(false);
   readonly selectedPeriod = signal<string>('2024-B');
-  readonly unreadNotificationsCount = signal<number>(3);
+
 
   // Dynamic breadcrumbs
   readonly breadcrumbs = signal<BreadcrumbItem[]>([
@@ -138,7 +141,14 @@ export class AppShellComponent {
       this.updateBreadcrumbs(event.urlAfterRedirects || event.url);
       this.isMobileMenuOpen.set(false);
       this.isProfileMenuOpen.set(false);
+      this.isNotificationsMenuOpen.set(false);
     });
+  }
+
+  ngOnInit(): void {
+    if (this.authService.isAuthenticated()) {
+      this.monitoringService.refreshAlerts();
+    }
   }
 
   toggleSidebar(): void {
@@ -151,10 +161,22 @@ export class AppShellComponent {
 
   toggleProfileMenu(): void {
     this.isProfileMenuOpen.update(prev => !prev);
+    if (this.isProfileMenuOpen()) {
+      this.isNotificationsMenuOpen.set(false);
+    }
+  }
+
+  toggleNotificationsMenu(): void {
+    this.isNotificationsMenuOpen.update(prev => !prev);
+    if (this.isNotificationsMenuOpen()) {
+      this.isProfileMenuOpen.set(false);
+      this.monitoringService.refreshAlerts();
+    }
   }
 
   closeMenus(): void {
     this.isProfileMenuOpen.set(false);
+    this.isNotificationsMenuOpen.set(false);
   }
 
   onPeriodChange(event: Event): void {
@@ -196,6 +218,9 @@ export class AppShellComponent {
     const target = event.target as HTMLElement;
     if (!target.closest('.user-profile-menu')) {
       this.isProfileMenuOpen.set(false);
+    }
+    if (!target.closest('.nexus-notifications-box')) {
+      this.isNotificationsMenuOpen.set(false);
     }
   }
 }
