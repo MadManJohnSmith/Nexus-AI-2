@@ -24,7 +24,7 @@ export const routes: Routes = [
       },
       {
         path: 'dashboard',
-        loadComponent: () => import('./features/students-list/students-list.component').then(m => m.StudentsListComponent)
+        loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
       },
       {
         path: 'tutoring',
@@ -36,7 +36,7 @@ export const routes: Routes = [
       },
       {
         path: 'academic-output',
-        loadComponent: () => import('./features/student-overview/student-overview.component').then(m => m.StudentOverviewComponent)
+        loadComponent: () => import('./features/academic-output/academic-output.component').then(m => m.AcademicOutputComponent)
       },
       {
         path: 'reports',

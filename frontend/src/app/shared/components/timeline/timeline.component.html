@@ -3,7 +3,7 @@
   <div class="timeline-header">
     <div class="header-titles">
       <h3 class="title">Trayectoria Longitudinal</h3>
-      <p class="subtitle">Historial unificado de tutorías, acuerdos, avances de tesis y evidencias documentales</p>
+      <p class="subtitle">Historial unificado de tutorías, acuerdos, avances de tesis, evidencias y producción científica</p>
     </div>
 
     <!-- Type Filters -->
@@ -42,6 +42,34 @@
         [class.active]="selectedTypeFilter() === 'EVIDENCIA'"
         (click)="setFilter('EVIDENCIA')">
         📎 Evidencias <span class="badge-count">{{ counts().EVIDENCIA }}</span>
+      </button>
+      <button 
+        type="button" 
+        class="filter-btn" 
+        [class.active]="selectedTypeFilter() === 'PUBLICACION'"
+        (click)="setFilter('PUBLICACION')">
+        🎓 Publicaciones <span class="badge-count">{{ counts().PUBLICACION }}</span>
+      </button>
+      <button 
+        type="button" 
+        class="filter-btn" 
+        [class.active]="selectedTypeFilter() === 'CONGRESO'"
+        (click)="setFilter('CONGRESO')">
+        🏛️ Congresos <span class="badge-count">{{ counts().CONGRESO }}</span>
+      </button>
+      <button 
+        type="button" 
+        class="filter-btn" 
+        [class.active]="selectedTypeFilter() === 'ESTANCIA'"
+        (click)="setFilter('ESTANCIA')">
+        🌍 Estancias <span class="badge-count">{{ counts().ESTANCIA }}</span>
+      </button>
+      <button 
+        type="button" 
+        class="filter-btn" 
+        [class.active]="selectedTypeFilter() === 'PRODUCTO'"
+        (click)="setFilter('PRODUCTO')">
+        📦 Productos <span class="badge-count">{{ counts().PRODUCTO }}</span>
       </button>
     </div>
   </div>
@@ -107,6 +135,14 @@
                   <span class="badge-custom badge-tutoria">{{ event.metadata?.modalidad || 'SESIÓN' }}</span>
                 } @else if (event.tipo === 'EVIDENCIA') {
                   <span class="badge-custom badge-evidencia">{{ event.metadata?.tipo === 'ENLACE_DOI' ? 'DOI' : 'ARCHIVO' }}</span>
+                } @else if (event.tipo === 'PUBLICACION') {
+                  <span class="badge-custom badge-publicacion">{{ event.metadata?.estado_display || event.estado }}</span>
+                } @else if (event.tipo === 'CONGRESO') {
+                  <span class="badge-custom badge-congreso">{{ event.metadata?.tipo || 'CONGRESO' }}</span>
+                } @else if (event.tipo === 'ESTANCIA') {
+                  <span class="badge-custom badge-estancia">ESTANCIA</span>
+                } @else if (event.tipo === 'PRODUCTO') {
+                  <span class="badge-custom badge-producto">{{ event.metadata?.tipo_producto || 'PRODUCTO' }}</span>
                 }
               </div>
             </div>
@@ -127,6 +163,18 @@
               }
               @if (event.tipo === 'EVIDENCIA' && event.metadata?.cargado_por) {
                 <span class="meta-preview">📤 {{ event.metadata?.cargado_por }}</span>
+              }
+              @if (event.tipo === 'PUBLICACION' && event.metadata?.revista_editorial) {
+                <span class="meta-preview">📖 {{ event.metadata?.revista_editorial }}</span>
+              }
+              @if (event.tipo === 'CONGRESO' && event.metadata?.sede) {
+                <span class="meta-preview">📍 {{ event.metadata?.sede }}</span>
+              }
+              @if (event.tipo === 'ESTANCIA' && event.metadata?.pais) {
+                <span class="meta-preview">🌐 {{ event.metadata?.pais }}</span>
+              }
+              @if (event.tipo === 'PRODUCTO' && event.metadata?.tipo_producto) {
+                <span class="meta-preview">🏷️ {{ event.metadata?.tipo_producto }}</span>
               }
               <span class="view-details-link">Ver detalles &rarr;</span>
             </div>
@@ -332,6 +380,121 @@
                 </a>
               </div>
             }
+          </div>
+        }
+
+        <!-- 5. PUBLICACION DETAILS -->
+        @if (ev.tipo === 'PUBLICACION' && ev.metadata) {
+          <div class="drawer-section">
+            <h5 class="section-heading">Detalles de Publicación</h5>
+            <div class="info-grid">
+              <div class="info-item full-width">
+                <span class="info-label">Autores</span>
+                <span class="info-val">{{ ev.metadata.autores || 'No especificado' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Revista / Editorial</span>
+                <span class="info-val">{{ ev.metadata.revista_editorial || 'N/A' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Tipo</span>
+                <span class="info-val">{{ ev.metadata.tipo_display || ev.metadata.tipo || 'Artículo' }}</span>
+              </div>
+              @if (ev.metadata.semestre) {
+                <div class="info-item">
+                  <span class="info-label">Semestre</span>
+                  <span class="info-val">{{ ev.metadata.semestre }}</span>
+                </div>
+              }
+            </div>
+
+            @if (ev.metadata.doi_url) {
+              <div class="external-link-card">
+                <span class="link-label">DOI / URL de Consulta:</span>
+                <a [href]="ev.metadata.doi_url" target="_blank" rel="noopener noreferrer" class="link-url">
+                  {{ ev.metadata.doi_url }} ↗
+                </a>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- 6. CONGRESO DETAILS -->
+        @if (ev.tipo === 'CONGRESO' && ev.metadata) {
+          <div class="drawer-section">
+            <h5 class="section-heading">Detalles de la Participación</h5>
+            <div class="info-grid">
+              <div class="info-item full-width">
+                <span class="info-label">Evento</span>
+                <span class="info-val">{{ ev.metadata.nombre_evento }}</span>
+              </div>
+              <div class="info-item full-width">
+                <span class="info-label">Ponencia</span>
+                <span class="info-val">{{ ev.metadata.titulo_ponencia }}</span>
+              </div>
+              @if (ev.metadata.sede) {
+                <div class="info-item">
+                  <span class="info-label">Sede / Lugar</span>
+                  <span class="info-val">{{ ev.metadata.sede }}</span>
+                </div>
+              }
+              @if (ev.metadata.modalidad) {
+                <div class="info-item">
+                  <span class="info-label">Modalidad</span>
+                  <span class="info-val">{{ ev.metadata.modalidad }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- 7. ESTANCIA DETAILS -->
+        @if (ev.tipo === 'ESTANCIA' && ev.metadata) {
+          <div class="drawer-section">
+            <h5 class="section-heading">Detalles de la Estancia</h5>
+            <div class="info-grid">
+              <div class="info-item full-width">
+                <span class="info-label">Institución Receptora</span>
+                <span class="info-val">{{ ev.metadata.institucion_receptora }}</span>
+              </div>
+              @if (ev.metadata.pais) {
+                <div class="info-item">
+                  <span class="info-label">País</span>
+                  <span class="info-val">{{ ev.metadata.pais }}</span>
+                </div>
+              }
+              @if (ev.metadata.responsable_anfitrion) {
+                <div class="info-item">
+                  <span class="info-label">Tutor / Anfitrión</span>
+                  <span class="info-val">{{ ev.metadata.responsable_anfitrion }}</span>
+                </div>
+              }
+              @if (ev.metadata.fecha_inicio) {
+                <div class="info-item full-width">
+                  <span class="info-label">Periodo de Realización</span>
+                  <span class="info-val">{{ ev.metadata.fecha_inicio | date:'dd/MM/yyyy' }} — {{ (ev.metadata.fecha_fin | date:'dd/MM/yyyy') || 'Presente' }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- 8. PRODUCTO DETAILS -->
+        @if (ev.tipo === 'PRODUCTO' && ev.metadata) {
+          <div class="drawer-section">
+            <h5 class="section-heading">Detalles del Producto</h5>
+            <div class="info-grid">
+              <div class="info-item full-width">
+                <span class="info-label">Tipo de Producto</span>
+                <span class="info-val">{{ ev.metadata.tipo_producto || 'Registro' }}</span>
+              </div>
+              @if (ev.metadata.fecha_registro) {
+                <div class="info-item">
+                  <span class="info-label">Fecha Registro</span>
+                  <span class="info-val">{{ ev.metadata.fecha_registro | date:'dd/MM/yyyy' }}</span>
+                </div>
+              }
+            </div>
           </div>
         }
       </div>

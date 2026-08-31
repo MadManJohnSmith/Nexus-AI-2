@@ -44,6 +44,10 @@ export class TimelineComponent implements OnInit, OnChanges {
       ACUERDO: all.filter(e => e.tipo === 'ACUERDO').length,
       TESIS: all.filter(e => e.tipo === 'TESIS').length,
       EVIDENCIA: all.filter(e => e.tipo === 'EVIDENCIA').length,
+      PUBLICACION: all.filter(e => e.tipo === 'PUBLICACION').length,
+      CONGRESO: all.filter(e => e.tipo === 'CONGRESO').length,
+      ESTANCIA: all.filter(e => e.tipo === 'ESTANCIA').length,
+      PRODUCTO: all.filter(e => e.tipo === 'PRODUCTO').length,
     };
   });
 

@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 
 from apps.students.models import Student, Semester, AcademicCommittee
-from apps.academic_output.models import Publication, AcademicEvent, ResearchStay
+from apps.academic_output.models import Publication, AcademicEvent, ResearchStay, OtherProduct
 from apps.evidence.models import Evidence
 
 User = get_user_model()
@@ -358,3 +358,63 @@ class AcademicOutputTests(APITestCase):
         self.assertEqual(res.data['details'], 'Recurso eliminado correctamente')
         self.assertTrue(res.data['success'])
         self.assertFalse(ResearchStay.objects.filter(id=stay.id).exists())
+
+    # ----------------- HU-20: OTROS PRODUCTOS ACADÉMICOS -----------------
+    def test_create_other_product_success(self):
+        self.client.force_authenticate(user=self.advisor_main)
+        payload = {
+            'student': self.student1.id,
+            'tipo_producto': 'SOFTWARE',
+            'titulo': 'BioVision ML Suite v1.0',
+            'descripcion': 'Librería de segmentación de imágenes histopatológicas.',
+            'fecha_registro': '2025-05-15'
+        }
+        response = self.client.post('/api/v2/academic-output/other-products/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('other_product_created_id', response.data)
+        self.assertEqual(response.data['mensaje'], 'Producto académico registrado correctamente')
+        self.assertEqual(response.data['other_product']['titulo'], payload['titulo'])
+        self.assertEqual(response.data['other_product']['tipo_producto_display'], 'Desarrollo de Software')
+
+    def test_list_other_products_rbac(self):
+        OtherProduct.objects.create(
+            student=self.student1,
+            tipo_producto='PATENTE',
+            titulo='Patente Sensor',
+            descripcion='Sensor biomédico'
+        )
+        OtherProduct.objects.create(
+            student=self.student2,
+            tipo_producto='SOFTWARE',
+            titulo='App Móvil',
+            descripcion='App de salud'
+        )
+
+        # Asesor 1
+        self.client.force_authenticate(user=self.advisor_main)
+        res = self.client.get('/api/v2/academic-output/other-products/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        results = res.data.get('results', res.data)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['titulo'], 'Patente Sensor')
+
+        # Coordinador
+        self.client.force_authenticate(user=self.coordinator)
+        res = self.client.get('/api/v2/academic-output/other-products/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        results = res.data.get('results', res.data)
+        self.assertEqual(len(results), 2)
+
+    def test_delete_other_product_success(self):
+        prod = OtherProduct.objects.create(
+            student=self.student1,
+            tipo_producto='BASE_DATOS',
+            titulo='Dataset a Eliminar',
+            descripcion='Dataset biomédico'
+        )
+        self.client.force_authenticate(user=self.coordinator)
+        res = self.client.delete(f'/api/v2/academic-output/other-products/{prod.id}/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['details'], 'Recurso eliminado correctamente')
+        self.assertTrue(res.data['success'])
+        self.assertFalse(OtherProduct.objects.filter(id=prod.id).exists())

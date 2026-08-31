@@ -1,4 +1,13 @@
-export type TimelineNodeType = 'TUTORIA' | 'ACUERDO' | 'TESIS' | 'EVIDENCIA' | 'PRODUCCION';
+export type TimelineNodeType = 
+  | 'TUTORIA' 
+  | 'ACUERDO' 
+  | 'TESIS' 
+  | 'EVIDENCIA' 
+  | 'PUBLICACION' 
+  | 'CONGRESO' 
+  | 'ESTANCIA' 
+  | 'PRODUCTO' 
+  | 'PRODUCCION';
 
 export interface TimelineParticipant {
   nombre: string;
@@ -19,6 +28,10 @@ export interface TimelineMetadata {
   agreement_id?: number;
   progress_id?: number;
   evidence_id?: number;
+  publication_id?: number;
+  event_id?: number;
+  stay_id?: number;
+  product_id?: number;
   modalidad?: string;
   semestre?: string;
   responsable?: string;
@@ -29,6 +42,26 @@ export interface TimelineMetadata {
   observaciones?: string | TimelineObservation[];
   participantes?: TimelineParticipant[];
   tipo?: string;
+  tipo_display?: string;
+  titulo?: string;
+  autores?: string;
+  revista_editorial?: string;
+  estado?: string;
+  estado_display?: string;
+  fecha_publicacion?: string;
+  doi_url?: string;
+  nombre_evento?: string;
+  titulo_ponencia?: string;
+  tipo_evento?: string;
+  sede?: string;
+  pais?: string;
+  fecha_evento?: string;
+  institucion_receptora?: string;
+  responsable_anfitrion?: string;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  tipo_producto?: string;
+  fecha_registro?: string;
   actividad_tipo?: string;
   actividad_id?: number;
   enlace_url?: string;
