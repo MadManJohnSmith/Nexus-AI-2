@@ -17,10 +17,10 @@
       <button 
         type="button" 
         class="btn-refresh" 
-        (click)="loadDashboard()" 
-        [disabled]="loading()"
+        (click)="loadAll()" 
+        [disabled]="loading() || loadingSupervision()"
         aria-label="Actualizar métricas">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="loading()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="loading() || loadingSupervision()">
           <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
         </svg>
         <span>Actualizar</span>
@@ -44,7 +44,7 @@
         <h4>Error al cargar el dashboard</h4>
         <p>{{ error() }}</p>
       </div>
-      <button type="button" class="btn-retry" (click)="loadDashboard()">Reintentar</button>
+      <button type="button" class="btn-retry" (click)="loadAll()">Reintentar</button>
     </div>
   }
 
@@ -192,7 +192,146 @@
       </div>
     </section>
 
-    <!-- 3. Cohort Distribution & Progress Section -->
+    <!-- 3. Active Supervision Rules Panel (HU-26) -->
+    <section class="supervision-section" aria-label="Alertas de Supervisión Activa">
+      <div class="section-heading-with-actions">
+        <div>
+          <div class="supervision-pill">MOTOR DE REGLAS V2.0</div>
+          <h2 class="section-title">Alertas de Supervisión Activa</h2>
+          <p class="section-subtitle">
+            Detección proactiva centralizada: rezago tutorial (&gt;45 días), acuerdos concluidos sin evidencia y calendarización próxima (&le; 7 días).
+          </p>
+        </div>
+
+        <div class="supervision-summary-badges">
+          <div class="summary-chip" [class.active]="supervisionTypeFilter() === 'TODAS'" (click)="setSupervisionTypeFilter('TODAS')">
+            <span class="chip-label">Total Alertas:</span>
+            <span class="chip-count">{{ totalSupervisionAlertas() }}</span>
+          </div>
+          <div class="summary-chip chip-tutoria" [class.active]="supervisionTypeFilter() === 'FALTA_TUTORIA_ACTIVA'" (click)="setSupervisionTypeFilter('FALTA_TUTORIA_ACTIVA')">
+            <span class="chip-icon">📘</span>
+            <span class="chip-label">Sin Tutoría (&gt;45d):</span>
+            <span class="chip-count">{{ supervisionSummary().falta_tutoria }}</span>
+          </div>
+          <div class="summary-chip chip-evidencia" [class.active]="supervisionTypeFilter() === 'ACUERDO_SIN_EVIDENCIA'" (click)="setSupervisionTypeFilter('ACUERDO_SIN_EVIDENCIA')">
+            <span class="chip-icon">📎</span>
+            <span class="chip-label">Sin Evidencia:</span>
+            <span class="chip-count">{{ supervisionSummary().acuerdo_sin_evidencia }}</span>
+          </div>
+          <div class="summary-chip chip-proxima" [class.active]="supervisionTypeFilter() === 'PROXIMA_TUTORIA_CERCANA'" (click)="setSupervisionTypeFilter('PROXIMA_TUTORIA_CERCANA')">
+            <span class="chip-icon">📅</span>
+            <span class="chip-label">Próximas (&le;7d):</span>
+            <span class="chip-count">{{ supervisionSummary().proxima_tutoria }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Severity Filter Toolbar -->
+      <div class="supervision-toolbar">
+        <span class="toolbar-label">Filtrar por Severidad:</span>
+        <div class="sev-pills">
+          <button 
+            type="button" 
+            class="sev-chip" 
+            [class.active]="supervisionSeverityFilter() === 'TODAS'"
+            (click)="setSupervisionSeverityFilter('TODAS')">
+            Todas
+          </button>
+          <button 
+            type="button" 
+            class="sev-chip chip-alta" 
+            [class.active]="supervisionSeverityFilter() === 'ALTA'"
+            (click)="setSupervisionSeverityFilter('ALTA')">
+            Alta
+          </button>
+          <button 
+            type="button" 
+            class="sev-chip chip-media" 
+            [class.active]="supervisionSeverityFilter() === 'MEDIA'"
+            (click)="setSupervisionSeverityFilter('MEDIA')">
+            Media
+          </button>
+          <button 
+            type="button" 
+            class="sev-chip chip-informativa" 
+            [class.active]="supervisionSeverityFilter() === 'INFORMATIVA'"
+            (click)="setSupervisionSeverityFilter('INFORMATIVA')">
+            Informativa
+          </button>
+        </div>
+      </div>
+
+      <!-- Alerts List / Grid -->
+      @if (loadingSupervision()) {
+        <div class="supervision-loading">
+          <div class="spinner-sm"></div>
+          <span>Evaluando reglas de supervisión activa...</span>
+        </div>
+      } @else if (filteredSupervisionAlerts().length === 0) {
+        <div class="supervision-empty">
+          <span class="empty-emoji">✨</span>
+          <h4>No hay alertas activas para este criterio</h4>
+          <p>Los estudiantes cumplen con sus sesiones de tutoría, evidencias documentales y calendarización.</p>
+        </div>
+      } @else {
+        <div class="supervision-alerts-grid">
+          @for (alert of filteredSupervisionAlerts(); track alert.regla_id + '-' + alert.student_id + '-' + (alert.agreement_id || alert.session_id || alert.dias_sin_tutoria || alert.titulo)) {
+            <div class="supervision-card alert-sev-{{ alert.severidad.toLowerCase() }}">
+              <div class="supervision-card-header">
+                <div class="alert-type-indicator">
+                  <span class="rule-icon">{{ getSupervisionTypeIcon(alert.tipo) }}</span>
+                  <span class="rule-id">{{ alert.regla_id }}</span>
+                </div>
+                <app-pill-badge 
+                  [tipo]="getSeverityBadgeType(alert.severidad)" 
+                  [texto]="alert.severidad">
+                </app-pill-badge>
+              </div>
+
+              <div class="supervision-card-body">
+                <h4 class="alert-title">{{ alert.titulo }}</h4>
+                <p class="alert-message">{{ alert.mensaje }}</p>
+
+                <div class="alert-student-info">
+                  <span class="student-name-tag">🎓 {{ alert.student_nombre }}</span>
+                  <span class="student-mat-tag">({{ alert.student_matricula }})</span>
+                </div>
+
+                @if (alert.dias_sin_tutoria !== undefined) {
+                  <div class="alert-meta-row">
+                    <span class="meta-label">Inactividad tutorial:</span>
+                    <strong class="meta-val meta-danger">{{ alert.dias_sin_tutoria }} días</strong>
+                  </div>
+                }
+                @if (alert.agreement_descripcion) {
+                  <div class="alert-meta-row">
+                    <span class="meta-label">Acuerdo:</span>
+                    <strong class="meta-val">{{ alert.agreement_descripcion }}</strong>
+                  </div>
+                }
+                @if (alert.fecha_proxima_reunion) {
+                  <div class="alert-meta-row">
+                    <span class="meta-label">Fecha programada:</span>
+                    <strong class="meta-val">{{ alert.fecha_proxima_reunion }} (en {{ alert.dias_restantes }} días)</strong>
+                  </div>
+                }
+              </div>
+
+              <div class="supervision-card-footer">
+                <button 
+                  type="button" 
+                  class="btn-alert-action" 
+                  (click)="navigateToStudent(alert.student_id)">
+                  Ir al Expediente &rarr;
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- 4. Cohort Distribution & Progress Section -->
     @if (cohortDistribution().length > 0) {
       <section class="cohort-section">
         <div class="section-heading">
@@ -222,7 +361,7 @@
       </section>
     }
 
-    <!-- 4. Prioritized Students Attention Table -->
+    <!-- 5. Prioritized Students Attention Table -->
     <section class="prioritized-table-section">
       <div class="table-header-block">
         <div>
@@ -380,13 +519,22 @@
 
                   <!-- Action -->
                   <td class="text-right">
-                    <button 
-                      type="button" 
-                      class="btn-view-expediente" 
-                      (click)="navigateToStudent(student.id)"
-                      title="Consultar expediente completo">
-                      Expediente &rarr;
-                    </button>
+                    <div style="display: inline-flex; gap: 6px;">
+                      <button 
+                        type="button" 
+                        class="btn-view-expediente" 
+                        (click)="navigateToDossier(student.id)"
+                        title="Consultar Cédula Oficial / Full Dossier">
+                        📄 Cédula
+                      </button>
+                      <button 
+                        type="button" 
+                        class="btn-view-expediente" 
+                        (click)="navigateToStudent(student.id)"
+                        title="Consultar expediente completo">
+                        Expediente &rarr;
+                      </button>
+                    </div>
                   </td>
                 </tr>
               }
