@@ -4,7 +4,8 @@ import { Observable, catchError, map, of, tap } from 'rxjs';
 import {
   ThesisProgress,
   ThesisProgressCreateRequest,
-  ThesisProgressCreateResponse
+  ThesisProgressCreateResponse,
+  ThesisHistoryResponse
 } from '../models/thesis.model';
 
 @Injectable({
@@ -16,6 +17,7 @@ export class ThesisService {
 
   readonly progressList = signal<ThesisProgress[]>([]);
   readonly latestProgress = signal<ThesisProgress | null>(null);
+  readonly historyData = signal<ThesisHistoryResponse | null>(null);
   readonly loading = signal<boolean>(false);
 
   private normalizeThesisProgress(raw: any): ThesisProgress {
@@ -101,6 +103,27 @@ export class ThesisService {
       catchError(err => {
         console.error(`Error fetching thesis progress ${id}:`, err);
         return of(null);
+      })
+    );
+  }
+
+  getThesisHistory(studentId: number | string): Observable<ThesisHistoryResponse> {
+    this.loading.set(true);
+    const params = new HttpParams().set('student_id', studentId.toString());
+    return this.http.get<ThesisHistoryResponse>(`${this.baseUrl}/history/`, { params }).pipe(
+      tap(res => {
+        this.historyData.set(res);
+        this.loading.set(false);
+      }),
+      catchError(err => {
+        console.error('Error fetching thesis history:', err);
+        this.loading.set(false);
+        return of({
+          student_id: Number(studentId),
+          total_registros: 0,
+          progreso_actual: 0,
+          historico: []
+        });
       })
     );
   }

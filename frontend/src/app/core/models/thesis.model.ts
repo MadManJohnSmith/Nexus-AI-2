@@ -51,3 +51,39 @@ export interface ThesisProgressCreateResponse {
   mensaje: string;
   thesis_progress: ThesisProgress;
 }
+
+export interface ThesisHistoryItem {
+  id?: number;
+  semester_id?: number;
+  semester_numero: number;
+  porcentaje_avance: number;
+  fecha_registro: string;
+  componentes: ThesisComponents;
+  componentes_json?: ThesisComponents;
+  observaciones?: string;
+  created_at?: string;
+
+  // CamelCase aliases
+  semesterNumber?: number;
+  percentage?: number;
+  registrationDate?: string;
+  components?: ThesisComponents;
+  observations?: string;
+}
+
+export interface ThesisHistoryResponse {
+  student_id: number;
+  student_matricula?: string;
+  student_nombre?: string;
+  total_registros: number;
+  progreso_actual: number;
+  historico: ThesisHistoryItem[];
+
+  // CamelCase aliases
+  studentId?: number;
+  studentMatricula?: string;
+  studentName?: string;
+  totalRecords?: number;
+  currentProgress?: number;
+  history?: ThesisHistoryItem[];
+}

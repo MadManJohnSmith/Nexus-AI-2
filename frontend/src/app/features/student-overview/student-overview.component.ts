@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed, inject, ChangeDetectionStrategy, i
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { StudentService } from '../../core/services/student.service';
+import { ThesisService } from '../../core/services/thesis.service';
 import { StudentDetail, Semester } from '../../core/models/student.model';
 import { TutoringSession } from '../../core/models/tutoring.model';
 import { Agreement } from '../../core/models/agreement.model';
@@ -12,6 +13,8 @@ import { TimelineComponent } from '../../shared/components/timeline/timeline.com
 import { AcademicCommitteeComponent } from '../committee/academic-committee/academic-committee.component';
 import { AgreementDrawerComponent } from '../agreements/agreement-drawer/agreement-drawer.component';
 import { TutoringModalComponent } from '../tutoring/tutoring-modal/tutoring-modal.component';
+import { ThesisHistoryChartComponent } from '../thesis/thesis-history-chart/thesis-history-chart.component';
+import { ThesisProgressFormComponent } from '../thesis/thesis-progress-form/thesis-progress-form.component';
 
 @Component({
   selector: 'app-student-overview',
@@ -23,7 +26,9 @@ import { TutoringModalComponent } from '../tutoring/tutoring-modal/tutoring-moda
     TimelineComponent,
     AcademicCommitteeComponent,
     AgreementDrawerComponent,
-    TutoringModalComponent
+    TutoringModalComponent,
+    ThesisHistoryChartComponent,
+    ThesisProgressFormComponent
   ],
   templateUrl: './student-overview.component.html',
   styleUrls: ['./student-overview.component.scss'],
@@ -31,6 +36,7 @@ import { TutoringModalComponent } from '../tutoring/tutoring-modal/tutoring-moda
 })
 export class StudentOverviewComponent implements OnInit {
   private studentService = inject(StudentService);
+  private thesisService = inject(ThesisService);
   private route = inject(ActivatedRoute);
 
   // Optional route param binding via input or ActivatedRoute
@@ -45,13 +51,14 @@ export class StudentOverviewComponent implements OnInit {
   readonly thesisProgress = signal<ThesisProgress | null>(null);
   readonly timelineNodes = signal<TimelineNode[]>([]);
   readonly isLoading = signal<boolean>(true);
-  readonly activeTab = signal<'RESUMEN' | 'TIMELINE' | 'ACUERDOS' | 'TUTORIAS'>('RESUMEN');
+  readonly activeTab = signal<'RESUMEN' | 'TIMELINE' | 'ACUERDOS' | 'TUTORIAS' | 'TESIS'>('RESUMEN');
 
   // Modal & Drawer Control Signals
   readonly isDrawerOpen = signal<boolean>(false);
   readonly drawerMode = signal<'CREATE' | 'STATUS_UPDATE'>('CREATE');
   readonly selectedAgreement = signal<Agreement | null>(null);
   readonly isTutoringModalOpen = signal<boolean>(false);
+  readonly isThesisModalOpen = signal<boolean>(false);
 
   // Computed views based on active semester
   readonly currentSemesterData = computed(() => {
@@ -84,6 +91,14 @@ export class StudentOverviewComponent implements OnInit {
   readonly studentIdNum = computed(() => {
     const s = this.student();
     return s ? Number(s.id) : 1;
+  });
+
+  readonly activeSemesterNum = computed<number>(() => {
+    const sem = this.activeSemester();
+    if (sem === 'ALL') {
+      return this.student()?.currentSemester || 1;
+    }
+    return typeof sem === 'number' ? sem : 1;
   });
 
   // Summary counts for filtered active semester
@@ -232,7 +247,7 @@ export class StudentOverviewComponent implements OnInit {
     this.activeSemester.set(semesterNumber);
   }
 
-  setActiveTab(tab: 'RESUMEN' | 'TIMELINE' | 'ACUERDOS' | 'TUTORIAS'): void {
+  setActiveTab(tab: 'RESUMEN' | 'TIMELINE' | 'ACUERDOS' | 'TUTORIAS' | 'TESIS'): void {
     this.activeTab.set(tab);
   }
 
@@ -319,6 +334,27 @@ export class StudentOverviewComponent implements OnInit {
           badgeType: 'CONCLUIDO'
         };
         this.timelineNodes.update(currentNodes => [newTimelineNode, ...currentNodes]);
+      }
+    });
+  }
+
+  // Thesis Modal Actions (HU-15 / HU-16)
+  openThesisModal(): void {
+    this.isThesisModalOpen.set(true);
+  }
+
+  closeThesisModal(): void {
+    this.isThesisModalOpen.set(false);
+  }
+
+  onThesisProgressSaved(progress: ThesisProgress): void {
+    const studentId = String(progress.student || this.student()?.id || '1');
+    this.thesisProgress.set(progress);
+    
+    // Refresh student timeline
+    this.studentService.getStudentTimeline(studentId).subscribe(nodes => {
+      if (nodes && nodes.length > 0) {
+        this.timelineNodes.set(nodes);
       }
     });
   }
