@@ -9,11 +9,20 @@ import { ThesisProgress } from '../../core/models/thesis.model';
 import { TimelineNode } from '../../core/models/timeline.model';
 import { PillBadgeComponent } from '../../shared/components/pill-badge/pill-badge.component';
 import { AcademicCommitteeComponent } from '../committee/academic-committee/academic-committee.component';
+import { AgreementDrawerComponent } from '../agreements/agreement-drawer/agreement-drawer.component';
+import { TutoringModalComponent } from '../tutoring/tutoring-modal/tutoring-modal.component';
 
 @Component({
   selector: 'app-student-overview',
   standalone: true,
-  imports: [CommonModule, RouterModule, PillBadgeComponent, AcademicCommitteeComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    PillBadgeComponent,
+    AcademicCommitteeComponent,
+    AgreementDrawerComponent,
+    TutoringModalComponent
+  ],
   templateUrl: './student-overview.component.html',
   styleUrls: ['./student-overview.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -35,6 +44,12 @@ export class StudentOverviewComponent implements OnInit {
   readonly timelineNodes = signal<TimelineNode[]>([]);
   readonly isLoading = signal<boolean>(true);
   readonly activeTab = signal<'RESUMEN' | 'TIMELINE' | 'ACUERDOS' | 'TUTORIAS'>('RESUMEN');
+
+  // Modal & Drawer Control Signals
+  readonly isDrawerOpen = signal<boolean>(false);
+  readonly drawerMode = signal<'CREATE' | 'STATUS_UPDATE'>('CREATE');
+  readonly selectedAgreement = signal<Agreement | null>(null);
+  readonly isTutoringModalOpen = signal<boolean>(false);
 
   // Computed views based on active semester
   readonly currentSemesterData = computed(() => {
@@ -64,7 +79,7 @@ export class StudentOverviewComponent implements OnInit {
     return list.filter(node => node.semesterNumber === sem);
   });
 
-  // Summary counts
+  // Summary counts for filtered active semester
   readonly pendingAgreementsCount = computed(() => {
     return this.filteredAgreements().filter(a => a.status === 'PENDIENTE').length;
   });
@@ -79,6 +94,11 @@ export class StudentOverviewComponent implements OnInit {
 
   readonly concludedAgreementsCount = computed(() => {
     return this.filteredAgreements().filter(a => a.status === 'CONCLUIDO').length;
+  });
+
+  // Total overdue count for global student trajectory
+  readonly totalOverdueAgreementsCount = computed(() => {
+    return this.agreements().filter(a => a.status === 'VENCIDO').length;
   });
 
   ngOnInit(): void {
@@ -102,7 +122,92 @@ export class StudentOverviewComponent implements OnInit {
       });
 
       this.studentService.getAgreements(studentId).subscribe(agreements => {
-        this.agreements.set(agreements);
+        // Enriched sample agreements if empty for realistic simulation
+        if (!agreements || agreements.length === 0) {
+          const enrichedAgreements: Agreement[] = [
+            {
+              id: 1,
+              studentId: Number(studentId),
+              studentName: detail.nombre_completo || detail.user?.fullName,
+              studentMatricula: detail.matricula,
+              tutoringSessionId: 101,
+              tutoringSessionTitle: 'Sesión Ordinaria - Revisión Capítulo 3',
+              semesterNumber: 3,
+              title: 'Completar benchmark comparativo de modelos BERT y RoBERTa',
+              description: 'Ejecutar las pruebas experimentales con los corpus de validación y tabular métricas F1 y precisión.',
+              responsibleId: 101,
+              responsibleName: detail.nombre_completo || 'María González López',
+              responsibleRole: 'Doctorando',
+              dueDate: '2024-12-15',
+              status: 'PENDIENTE',
+              isOverdue: false,
+              createdAt: '2024-11-20T10:30:00Z',
+              updatedAt: '2024-11-20T10:30:00Z'
+            },
+            {
+              id: 2,
+              studentId: Number(studentId),
+              studentName: detail.nombre_completo || detail.user?.fullName,
+              studentMatricula: detail.matricula,
+              tutoringSessionId: 101,
+              tutoringSessionTitle: 'Sesión Ordinaria - Revisión Capítulo 3',
+              semesterNumber: 3,
+              title: 'Revisión y retroalimentación del borrador del Capítulo 3',
+              description: 'El comité asesor revisará la sección de metodología experimental y emitirá sugerencias de ajuste.',
+              responsibleId: 2,
+              responsibleName: 'Dr. Roberto Mendoza',
+              responsibleRole: 'Asesor Principal',
+              dueDate: '2024-12-20',
+              status: 'EN_PROCESO',
+              isOverdue: false,
+              createdAt: '2024-11-20T10:30:00Z',
+              updatedAt: '2024-11-25T14:00:00Z'
+            },
+            {
+              id: 3,
+              studentId: Number(studentId),
+              studentName: detail.nombre_completo || detail.user?.fullName,
+              studentMatricula: detail.matricula,
+              tutoringSessionId: 98,
+              tutoringSessionTitle: 'Revisión Extraordinaria de Protocolo',
+              semesterNumber: 3,
+              title: 'Entrega de constancia de seminario de investigación I',
+              description: 'Cargar el comprobante de asistencia y ponencia aprobada en el seminario departamental.',
+              responsibleId: 101,
+              responsibleName: detail.nombre_completo || 'María González López',
+              responsibleRole: 'Doctorando',
+              dueDate: '2024-10-30',
+              status: 'VENCIDO',
+              isOverdue: true,
+              createdAt: '2024-10-01T09:00:00Z',
+              updatedAt: '2024-11-01T08:00:00Z'
+            },
+            {
+              id: 4,
+              studentId: Number(studentId),
+              studentName: detail.nombre_completo || detail.user?.fullName,
+              studentMatricula: detail.matricula,
+              tutoringSessionId: 85,
+              tutoringSessionTitle: 'Coloquio Semestral de Avances',
+              semesterNumber: 2,
+              title: 'Envío de artículo científico a revista Q2 IEEE',
+              description: 'Finalizar formato de doble columna y anexar cartas de coautores para someter al journal.',
+              responsibleId: 101,
+              responsibleName: detail.nombre_completo || 'María González López',
+              responsibleRole: 'Doctorando',
+              dueDate: '2024-05-15',
+              status: 'CONCLUIDO',
+              completionDate: '2024-05-12',
+              resolutionNotes: 'Artículo sometido exitosamente con folio IEEE-NLP-2024-889.',
+              isOverdue: false,
+              createdAt: '2024-04-10T11:00:00Z',
+              updatedAt: '2024-05-12T16:30:00Z'
+            }
+          ];
+          this.agreements.set(enrichedAgreements);
+        } else {
+          this.agreements.set(agreements);
+        }
       });
 
       this.studentService.getThesisProgress(studentId).subscribe(progress => {
@@ -122,6 +227,45 @@ export class StudentOverviewComponent implements OnInit {
 
   setActiveTab(tab: 'RESUMEN' | 'TIMELINE' | 'ACUERDOS' | 'TUTORIAS'): void {
     this.activeTab.set(tab);
+  }
+
+  // Drawer Actions
+  openCreateAgreementDrawer(): void {
+    this.drawerMode.set('CREATE');
+    this.selectedAgreement.set(null);
+    this.isDrawerOpen.set(true);
+  }
+
+  openUpdateAgreementDrawer(agreement: Agreement): void {
+    this.drawerMode.set('STATUS_UPDATE');
+    this.selectedAgreement.set(agreement);
+    this.isDrawerOpen.set(true);
+  }
+
+  closeAgreementDrawer(): void {
+    this.isDrawerOpen.set(false);
+    this.selectedAgreement.set(null);
+  }
+
+  onAgreementSaved(savedAgr: Agreement): void {
+    if (this.drawerMode() === 'CREATE') {
+      this.agreements.update(list => [savedAgr, ...list]);
+    } else {
+      this.agreements.update(list => list.map(a => a.id === savedAgr.id ? savedAgr : a));
+    }
+  }
+
+  // Tutoring Modal Actions
+  openTutoringModal(): void {
+    this.isTutoringModalOpen.set(true);
+  }
+
+  closeTutoringModal(): void {
+    this.isTutoringModalOpen.set(false);
+  }
+
+  onTutoringSessionSaved(session: TutoringSession): void {
+    this.tutoringSessions.update(list => [session, ...list]);
   }
 
   getNodeIcon(type: string): string {

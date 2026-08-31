@@ -32,7 +32,7 @@ export const routes: Routes = [
       },
       {
         path: 'agreements',
-        loadComponent: () => import('./features/student-overview/student-overview.component').then(m => m.StudentOverviewComponent)
+        loadComponent: () => import('./features/agreements/agreements-list/agreements-list.component').then(m => m.AgreementsListComponent)
       },
       {
         path: 'academic-output',
