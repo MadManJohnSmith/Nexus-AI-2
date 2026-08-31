@@ -1,10 +1,12 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 
 from .models import ThesisProgress
 from .serializers import ThesisProgressSerializer, ThesisProgressCreateSerializer
+from apps.students.models import Student
 from apps.identity.permissions import IsAssignedAdvisorOrStudent
 
 
@@ -73,3 +75,64 @@ class ThesisProgressViewSet(viewsets.ModelViewSet):
             {'details': 'Recurso eliminado correctamente', 'success': True},
             status=status.HTTP_200_OK
         )
+
+    @action(detail=False, methods=['get'], url_path='history')
+    def history(self, request):
+        """
+        HU-16: Retorna la evolución longitudinal histórica del avance de tesis
+        para los semestres del doctorando con componentes y porcentajes desglosados.
+        """
+        user = request.user
+        if not user.is_authenticated:
+            return Response({'detail': 'No autenticado'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        student_id = request.query_params.get('student_id') or request.query_params.get('student')
+
+        if getattr(user, 'role', None) == 'ESTUDIANTE':
+            student_obj = Student.objects.filter(user=user).first()
+            if not student_obj:
+                return Response({'detail': 'Perfil de estudiante no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+            if student_id and str(student_obj.id) != str(student_id):
+                return Response({'detail': 'No tiene permisos para consultar el historial de otro estudiante'}, status=status.HTTP_403_FORBIDDEN)
+            student = student_obj
+        else:
+            if not student_id:
+                return Response({'detail': 'El parámetro student_id o student es requerido'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                student = Student.objects.get(pk=student_id)
+            except Student.DoesNotExist:
+                return Response({'detail': 'Estudiante no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+            if getattr(user, 'role', None) == 'ASESOR' and not user.is_superuser:
+                is_assigned = student.committee_members.filter(user=user, is_active=True).exists()
+                if not is_assigned:
+                    return Response({'detail': 'No tiene permisos para ver el historial de este estudiante'}, status=status.HTTP_403_FORBIDDEN)
+
+        progresses = ThesisProgress.objects.filter(student=student).select_related('semester').order_by('semester__numero', 'fecha_registro', 'created_at')
+
+        history_items = []
+        for p in progresses:
+            history_items.append({
+                'id': p.id,
+                'semester_id': p.semester_id,
+                'semester_numero': p.semester.numero if p.semester else None,
+                'porcentaje_avance': p.porcentaje_avance,
+                'fecha_registro': str(p.fecha_registro),
+                'componentes': p.componentes_json,
+                'componentes_json': p.componentes_json,
+                'observaciones': p.observaciones,
+                'created_at': p.created_at.isoformat() if p.created_at else None,
+            })
+
+        latest_progress = progresses.last()
+        progreso_actual = latest_progress.porcentaje_avance if latest_progress else 0
+
+        data = {
+            'student_id': student.id,
+            'student_matricula': student.matricula,
+            'student_nombre': student.nombre_completo,
+            'total_registros': len(history_items),
+            'progreso_actual': progreso_actual,
+            'historico': history_items
+        }
+        return Response(data, status=status.HTTP_200_OK)

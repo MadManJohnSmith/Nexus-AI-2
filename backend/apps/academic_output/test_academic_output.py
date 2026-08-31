@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 
 from apps.students.models import Student, Semester, AcademicCommittee
-from apps.academic_output.models import Publication
+from apps.academic_output.models import Publication, AcademicEvent
 from apps.evidence.models import Evidence
 
 User = get_user_model()
@@ -126,7 +126,6 @@ class AcademicOutputTests(APITestCase):
         self.assertIn('semester', response.data)
 
     def test_list_publications_rbac_isolation(self):
-        # Crear publicación para estudiante 1 y estudiante 2
         Publication.objects.create(
             student=self.student1,
             semester=self.semester1,
@@ -190,3 +189,89 @@ class AcademicOutputTests(APITestCase):
         self.assertEqual(response.data['details'], 'Recurso eliminado correctamente')
         self.assertTrue(response.data['success'])
         self.assertFalse(Publication.objects.filter(id=pub.id).exists())
+
+    # ----------------- HU-18: EVENTOS ACADÉMICOS -----------------
+    def test_create_academic_event_success(self):
+        self.client.force_authenticate(user=self.advisor_main)
+        payload = {
+            'student': self.student1.id,
+            'semester': self.semester1.id,
+            'tipo_evento': 'CONGRESO_INTERNACIONAL',
+            'nombre_evento': 'IEEE WCCI 2025',
+            'titulo_ponencia': 'Convolutional Networks for Tumor Classification',
+            'fecha_presentacion': '2025-07-10',
+            'sede_lugar': 'Yokohama, Japón',
+            'modalidad': 'PRESENCIAL'
+        }
+        response = self.client.post('/api/v2/academic-output/academic-events/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('academic_event_created_id', response.data)
+        self.assertEqual(response.data['mensaje'], 'Evento académico registrado correctamente')
+        self.assertEqual(response.data['academic_event']['nombre_evento'], payload['nombre_evento'])
+        self.assertEqual(response.data['academic_event']['modalidad_display'], 'Presencial')
+
+    def test_create_academic_event_semester_mismatch(self):
+        self.client.force_authenticate(user=self.advisor_main)
+        payload = {
+            'student': self.student1.id,
+            'semester': self.semester2.id,
+            'tipo_evento': 'CONGRESO_NACIONAL',
+            'nombre_evento': 'Congreso Nal Computación',
+            'titulo_ponencia': 'Charla',
+            'fecha_presentacion': '2025-08-01',
+            'sede_lugar': 'CDMX'
+        }
+        response = self.client.post('/api/v2/academic-output/academic-events/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('semester', response.data)
+
+    def test_list_academic_events_rbac(self):
+        AcademicEvent.objects.create(
+            student=self.student1,
+            semester=self.semester1,
+            tipo_evento='COLOQUIO',
+            nombre_evento='Coloquio Posgrado',
+            titulo_ponencia='Avances Estudiante 1',
+            fecha_presentacion=date.today(),
+            sede_lugar='Auditorio Central'
+        )
+        AcademicEvent.objects.create(
+            student=self.student2,
+            semester=self.semester2,
+            tipo_evento='CONGRESO_NACIONAL',
+            nombre_evento='Congreso Nacional',
+            titulo_ponencia='Avances Estudiante 2',
+            fecha_presentacion=date.today(),
+            sede_lugar='Guadalajara'
+        )
+
+        # Asesor 1 asignado a student 1
+        self.client.force_authenticate(user=self.advisor_main)
+        res = self.client.get('/api/v2/academic-output/academic-events/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        results = res.data.get('results', res.data)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['nombre_evento'], 'Coloquio Posgrado')
+
+        # Coordinador
+        self.client.force_authenticate(user=self.coordinator)
+        res = self.client.get('/api/v2/academic-output/academic-events/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        results = res.data.get('results', res.data)
+        self.assertEqual(len(results), 2)
+
+    def test_delete_academic_event_success(self):
+        ev = AcademicEvent.objects.create(
+            student=self.student1,
+            tipo_evento='COLOQUIO',
+            nombre_evento='Coloquio Borrar',
+            titulo_ponencia='Charla',
+            fecha_presentacion=date.today(),
+            sede_lugar='Online'
+        )
+        self.client.force_authenticate(user=self.coordinator)
+        res = self.client.delete(f'/api/v2/academic-output/academic-events/{ev.id}/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['details'], 'Recurso eliminado correctamente')
+        self.assertTrue(res.data['success'])
+        self.assertFalse(AcademicEvent.objects.filter(id=ev.id).exists())

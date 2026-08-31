@@ -12,6 +12,210 @@ from apps.tutoring.models import TutoringSession
 from apps.agreements.models import Agreement
 
 
+class CoordinatorDashboardView(APIView):
+    """
+    GET /api/v2/monitoring/coordinator-dashboard/
+    
+    Endpoint analítico de alto rendimiento para Coordinadores y Asesores.
+    Calcula mediante agregaciones ORM optimizadas (sin N+1):
+    - KPIs institucionales (estudiantes activos, tutorías, acuerdos, tasa de cumplimiento, promedio de tesis).
+    - Semáforo de riesgo (Atención Crítica, Preventiva, Al Día).
+    - Tabla priorizada de atención a estudiantes ordenada por criticidad.
+    - Distribución y avance promedio por cohorte.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        role = getattr(user, 'role', None)
+
+        # RBAC: Acceso reservado a Coordinador, Asesor o Superusuario
+        if not (user.is_superuser or role in ['COORDINADOR', 'ADMIN', 'ASESOR']):
+            raise PermissionDenied("Acceso denegado: El dashboard institucional está reservado para la coordinación académica.")
+
+        today = timezone.now().date()
+
+        # 1. Actualización en lote de acuerdos vencidos en la BD
+        Agreement.objects.filter(
+            fecha_limite__lt=today
+        ).exclude(
+            estado__in=[Agreement.STATUS_CONCLUIDO, Agreement.STATUS_VENCIDO]
+        ).update(
+            estado=Agreement.STATUS_VENCIDO,
+            updated_at=timezone.now()
+        )
+
+        # 2. Querysets optimizados
+        students_qs = Student.objects.filter(estatus_activo=True).prefetch_related(
+            'committee_members__user',
+            'tutoring_sessions',
+            'agreements',
+            'thesis_progresses'
+        ).order_by('matricula')
+
+        total_estudiantes_activos = students_qs.count()
+
+        # KPIs globales de acuerdos
+        all_agreements = Agreement.objects.filter(student__estatus_activo=True)
+        total_acuerdos = all_agreements.count()
+        total_acuerdos_activos = all_agreements.filter(
+            estado__in=[Agreement.STATUS_PENDIENTE, Agreement.STATUS_EN_PROCESO]
+        ).count()
+        total_acuerdos_vencidos = all_agreements.filter(estado=Agreement.STATUS_VENCIDO).count()
+        total_acuerdos_concluidos = all_agreements.filter(estado=Agreement.STATUS_CONCLUIDO).count()
+        tasa_cumplimiento = (
+            round((total_acuerdos_concluidos / total_acuerdos * 100), 1)
+            if total_acuerdos > 0 else 0.0
+        )
+
+        total_tutorias_periodo = TutoringSession.objects.filter(student__estatus_activo=True).count()
+
+        # Evaluación detallada por estudiante
+        evaluated_students = []
+        critica_count = 0
+        preventiva_count = 0
+        al_dia_count = 0
+        cohort_map = {}
+        all_thesis_progress_values = []
+
+        for st in students_qs:
+            # A) Tutorías
+            sessions = sorted(st.tutoring_sessions.all(), key=lambda s: s.fecha_sesion, reverse=True)
+            latest_session = sessions[0] if sessions else None
+            dias_sin_tutoria = (today - latest_session.fecha_sesion).days if latest_session else None
+            no_tutoria_gt_60 = (dias_sin_tutoria is None) or (dias_sin_tutoria > 60)
+            no_tutoria_gt_45 = (dias_sin_tutoria is not None) and (dias_sin_tutoria > 45)
+
+            # B) Acuerdos
+            st_agreements = list(st.agreements.all())
+            vencidos_count = 0
+            has_overdue_gt_15 = False
+            has_due_soon_lte_5 = False
+
+            for ag in st_agreements:
+                if ag.estado == Agreement.STATUS_VENCIDO or (ag.fecha_limite < today and ag.estado != Agreement.STATUS_CONCLUIDO):
+                    vencidos_count += 1
+                    if (today - ag.fecha_limite).days > 15:
+                        has_overdue_gt_15 = True
+                elif ag.estado != Agreement.STATUS_CONCLUIDO:
+                    dias_restantes = (ag.fecha_limite - today).days
+                    if 0 <= dias_restantes <= 5:
+                        has_due_soon_lte_5 = True
+
+            # C) Tesis
+            thesis_list = sorted(
+                st.thesis_progresses.all(),
+                key=lambda p: (p.fecha_registro, p.created_at),
+                reverse=True
+            )
+            avance_tesis = thesis_list[0].porcentaje_avance if thesis_list else 0
+            all_thesis_progress_values.append(avance_tesis)
+
+            # D) Asesor Principal
+            advisor_name = "Sin asignar"
+            for cm in st.committee_members.all():
+                if cm.is_active and cm.rol_comite == 'ASESOR_PRINCIPAL':
+                    advisor_name = cm.user.get_full_name() if (hasattr(cm.user, 'get_full_name') and cm.user.get_full_name()) else getattr(cm.user, 'email', str(cm.user))
+                    break
+            if advisor_name == "Sin asignar":
+                for cm in st.committee_members.all():
+                    if cm.is_active:
+                        advisor_name = cm.user.get_full_name() if (hasattr(cm.user, 'get_full_name') and cm.user.get_full_name()) else getattr(cm.user, 'email', str(cm.user))
+                        break
+
+            # E) Nivel de Riesgo
+            if has_overdue_gt_15 or no_tutoria_gt_60:
+                nivel_riesgo = "CRITICO"
+                badge_color = "#A14D98"
+                badge_bg = "#F8F1FF"
+                critica_count += 1
+                risk_order = 0
+            elif has_due_soon_lte_5 or no_tutoria_gt_45 or vencidos_count > 0:
+                nivel_riesgo = "PREVENTIVO"
+                badge_color = "#B57136"
+                badge_bg = "#FEF8F3"
+                preventiva_count += 1
+                risk_order = 1
+            else:
+                nivel_riesgo = "AL_DIA"
+                badge_color = "#437E5C"
+                badge_bg = "#E9FEF1"
+                al_dia_count += 1
+                risk_order = 2
+
+            # Cohorte tracking
+            cohorte = st.cohorte or "Sin Cohorte"
+            if cohorte not in cohort_map:
+                cohort_map[cohorte] = []
+            cohort_map[cohorte].append(avance_tesis)
+
+            dias_sort_value = dias_sin_tutoria if dias_sin_tutoria is not None else 9999
+            dias_display = f"{dias_sin_tutoria} días" if dias_sin_tutoria is not None else "Sin sesiones"
+
+            evaluated_students.append({
+                "id": st.id,
+                "matricula": st.matricula,
+                "nombre": st.nombre_completo,
+                "cohorte": st.cohorte,
+                "asesor_principal": advisor_name,
+                "dias_sin_tutoria": dias_sin_tutoria,
+                "dias_sin_tutoria_display": dias_display,
+                "acuerdos_vencidos": vencidos_count,
+                "avance_tesis": avance_tesis,
+                "nivel_riesgo": nivel_riesgo,
+                "badge_color": badge_color,
+                "badge_bg": badge_bg,
+                "_risk_order": risk_order,
+                "_dias_sort": dias_sort_value
+            })
+
+        # Ordenar tabla priorizada: Riesgo (CRITICO -> PREVENTIVO -> AL_DIA), luego días sin tutoría desc, luego acuerdos vencidos desc
+        evaluated_students.sort(
+            key=lambda x: (x["_risk_order"], -x["_dias_sort"], -x["acuerdos_vencidos"], x["matricula"])
+        )
+
+        # Limpiar llaves privadas de ordenamiento
+        for item in evaluated_students:
+            del item["_risk_order"]
+            del item["_dias_sort"]
+
+        # Promedio global de tesis
+        promedio_avance_tesis = (
+            round(sum(all_thesis_progress_values) / len(all_thesis_progress_values), 1)
+            if all_thesis_progress_values else 0.0
+        )
+
+        # Distribución por cohorte
+        distribucion_cohorte = []
+        for cohorte_name in sorted(cohort_map.keys()):
+            avances = cohort_map[cohorte_name]
+            prom_cohorte = round(sum(avances) / len(avances), 1) if avances else 0.0
+            distribucion_cohorte.append({
+                "cohorte": cohorte_name,
+                "promedio_avance": prom_cohorte,
+                "total_estudiantes": len(avances)
+            })
+
+        return Response({
+            "kpis": {
+                "total_estudiantes_activos": total_estudiantes_activos,
+                "total_tutorias_periodo": total_tutorias_periodo,
+                "total_acuerdos_activos": total_acuerdos_activos,
+                "total_acuerdos_vencidos": total_acuerdos_vencidos,
+                "tasa_cumplimiento_acuerdos": tasa_cumplimiento,
+                "promedio_avance_tesis": promedio_avance_tesis,
+            },
+            "semaforo_riesgo": {
+                "atencion_critica": critica_count,
+                "atencion_preventiva": preventiva_count,
+                "alumnos_al_dia": al_dia_count,
+                "total_evaluados": len(evaluated_students),
+            },
+            "tabla_priorizada": evaluated_students,
+            "distribucion_cohorte": distribucion_cohorte,
+        }, status=status.HTTP_200_OK)
+
+
 class AlertsView(APIView):
     """
     GET /api/v2/monitoring/alerts/
@@ -43,7 +247,7 @@ class AlertsView(APIView):
         student_param = request.query_params.get('student')
         
         # Scope students
-        if user.is_superuser or getattr(user, 'role', None) == 'COORDINADOR':
+        if user.is_superuser or getattr(user, 'role', None) in ['COORDINADOR', 'ADMIN']:
             students_qs = Student.objects.filter(estatus_activo=True)
             agreements_qs = Agreement.objects.select_related('student', 'responsable')
         elif getattr(user, 'role', None) == 'ASESOR':
@@ -178,11 +382,15 @@ class TimelineView(APIView):
     """
     GET /api/v2/monitoring/timeline/?student=<id>
     
-    Recoge y unifica cronológicamente los 4 tipos de nodos:
+    Recoge y unifica cronológicamente los 8 tipos de nodos:
     1. TUTORIA (📘, #6365EF)
     2. ACUERDO (📝, semáforo: PENDIENTE #57949D, EN_PROCESO #B57136, CONCLUIDO #437E5C, VENCIDO #A14D98)
     3. TESIS (📊, #2C1867)
     4. EVIDENCIA (📎, #57949D)
+    5. PUBLICACION (🎓, #6365EF)
+    6. CONGRESO (🏛️, #57949D)
+    7. ESTANCIA (🌍, #2C1867)
+    8. PRODUCTO (📦, #B57136)
     """
     permission_classes = [permissions.IsAuthenticated]
 
@@ -206,7 +414,7 @@ class TimelineView(APIView):
             raise NotFound("Estudiante no encontrado.")
 
         # RBAC Check
-        if not (user.is_superuser or getattr(user, 'role', None) == 'COORDINADOR'):
+        if not (user.is_superuser or getattr(user, 'role', None) in ['COORDINADOR', 'ADMIN']):
             if getattr(user, 'role', None) == 'ESTUDIANTE' and student.user != user:
                 raise PermissionDenied("No tiene permisos para consultar el expediente de este estudiante.")
             elif getattr(user, 'role', None) == 'ASESOR':
@@ -343,6 +551,127 @@ class TimelineView(APIView):
                             "mime_type": ev.mime_type,
                             "file_size_bytes": ev.file_size_bytes,
                             "cargado_por": cargado_por
+                        }
+                    })
+        except LookupError:
+            pass
+
+        # 5. PUBLICACIONES CIENTÍFICAS
+        try:
+            Publication = apps.get_model('academic_output', 'Publication')
+            if Publication:
+                pub_qs = Publication.objects.filter(student=student).select_related('semester', 'evidencia')
+                for pub in pub_qs:
+                    fecha_pub = str(pub.fecha_publicacion or pub.created_at.date())
+                    events.append({
+                        "id": f"publicacion-{pub.id}",
+                        "tipo": "PUBLICACION",
+                        "titulo": f"Publicación: {pub.titulo}",
+                        "descripcion": f"{pub.get_tipo_display() if hasattr(pub, 'get_tipo_display') else pub.tipo} en {pub.revista_editorial}",
+                        "fecha": fecha_pub,
+                        "estado": pub.get_estado_display() if hasattr(pub, 'get_estado_display') else pub.estado,
+                        "icono": "🎓",
+                        "color": "#6365EF",
+                        "metadata": {
+                            "publication_id": pub.id,
+                            "titulo": pub.titulo,
+                            "autores": pub.autores_texto,
+                            "tipo": pub.tipo,
+                            "tipo_display": pub.get_tipo_display() if hasattr(pub, 'get_tipo_display') else pub.tipo,
+                            "revista_editorial": pub.revista_editorial,
+                            "estado": pub.estado,
+                            "estado_display": pub.get_estado_display() if hasattr(pub, 'get_estado_display') else pub.estado,
+                            "fecha_publicacion": str(pub.fecha_publicacion) if pub.fecha_publicacion else None,
+                            "doi_url": pub.doi_url,
+                            "evidencia_id": pub.evidencia_id,
+                            "semestre": f"Semestre {pub.semester.numero}" if pub.semester else None
+                        }
+                    })
+        except LookupError:
+            pass
+
+        # 6. CONGRESOS Y COLOQUIOS
+        try:
+            AcademicEvent = apps.get_model('academic_output', 'AcademicEvent')
+            if AcademicEvent:
+                event_qs = AcademicEvent.objects.filter(student=student).select_related('semester', 'evidencia')
+                for a_ev in event_qs:
+                    fecha_ev = str(getattr(a_ev, 'fecha_evento', None) or getattr(a_ev, 'fecha_inicio', None) or a_ev.created_at.date())
+                    events.append({
+                        "id": f"congreso-{a_ev.id}",
+                        "tipo": "CONGRESO",
+                        "titulo": f"Congreso: {getattr(a_ev, 'nombre_evento', getattr(a_ev, 'nombre', 'Evento Académico'))}",
+                        "descripcion": f"Ponencia: {getattr(a_ev, 'titulo_ponencia', getattr(a_ev, 'ponencia', 'Participación'))}",
+                        "fecha": fecha_ev,
+                        "estado": getattr(a_ev, 'tipo', 'CONGRESO'),
+                        "icono": "🏛️",
+                        "color": "#57949D",
+                        "metadata": {
+                            "event_id": a_ev.id,
+                            "nombre_evento": getattr(a_ev, 'nombre_evento', getattr(a_ev, 'nombre', '')),
+                            "titulo_ponencia": getattr(a_ev, 'titulo_ponencia', getattr(a_ev, 'ponencia', '')),
+                            "tipo": getattr(a_ev, 'tipo', 'CONGRESO'),
+                            "sede": getattr(a_ev, 'sede', getattr(a_ev, 'lugar', '')),
+                            "pais": getattr(a_ev, 'pais', ''),
+                            "fecha_evento": fecha_ev,
+                            "semestre": f"Semestre {a_ev.semester.numero}" if getattr(a_ev, 'semester', None) else None
+                        }
+                    })
+        except LookupError:
+            pass
+
+        # 7. ESTANCIAS DE INVESTIGACIÓN
+        try:
+            ResearchStay = apps.get_model('academic_output', 'ResearchStay')
+            if ResearchStay:
+                stay_qs = ResearchStay.objects.filter(student=student).select_related('semester', 'evidencia')
+                for stay in stay_qs:
+                    fecha_st = str(getattr(stay, 'fecha_inicio', stay.created_at.date()))
+                    events.append({
+                        "id": f"estancia-{stay.id}",
+                        "tipo": "ESTANCIA",
+                        "titulo": f"Estancia: {getattr(stay, 'institucion_receptora', getattr(stay, 'institucion', 'Estancia de Investigación'))}",
+                        "descripcion": f"En {getattr(stay, 'pais', 'Sede')} con {getattr(stay, 'responsable_anfitrion', getattr(stay, 'tutor_anfitrion', 'Anfitrión'))}",
+                        "fecha": fecha_st,
+                        "estado": "ESTANCIA",
+                        "icono": "🌍",
+                        "color": "#2C1867",
+                        "metadata": {
+                            "stay_id": stay.id,
+                            "institucion_receptora": getattr(stay, 'institucion_receptora', getattr(stay, 'institucion', '')),
+                            "pais": getattr(stay, 'pais', ''),
+                            "responsable_anfitrion": getattr(stay, 'responsable_anfitrion', getattr(stay, 'tutor_anfitrion', '')),
+                            "fecha_inicio": str(getattr(stay, 'fecha_inicio', '')),
+                            "fecha_fin": str(getattr(stay, 'fecha_fin', '')),
+                            "semestre": f"Semestre {stay.semester.numero}" if getattr(stay, 'semester', None) else None
+                        }
+                    })
+        except LookupError:
+            pass
+
+        # 8. OTROS PRODUCTOS ACADÉMICOS
+        try:
+            OtherProduct = apps.get_model('academic_output', 'OtherProduct')
+            if OtherProduct:
+                prod_qs = OtherProduct.objects.filter(student=student).select_related('semester', 'evidencia')
+                for prod in prod_qs:
+                    fecha_prod = str(getattr(prod, 'fecha_registro', getattr(prod, 'fecha', prod.created_at.date())))
+                    events.append({
+                        "id": f"producto-{prod.id}",
+                        "tipo": "PRODUCTO",
+                        "titulo": f"Producto: {getattr(prod, 'titulo', getattr(prod, 'nombre', 'Producto'))}",
+                        "descripcion": getattr(prod, 'descripcion', ''),
+                        "fecha": fecha_prod,
+                        "estado": getattr(prod, 'tipo_producto', getattr(prod, 'tipo', 'PRODUCTO')),
+                        "icono": "📦",
+                        "color": "#B57136",
+                        "metadata": {
+                            "product_id": prod.id,
+                            "titulo": getattr(prod, 'titulo', getattr(prod, 'nombre', '')),
+                            "tipo_producto": getattr(prod, 'tipo_producto', getattr(prod, 'tipo', '')),
+                            "descripcion": getattr(prod, 'descripcion', ''),
+                            "fecha_registro": fecha_prod,
+                            "semestre": f"Semestre {prod.semester.numero}" if getattr(prod, 'semester', None) else None
                         }
                     })
         except LookupError:
