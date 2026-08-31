@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MonitoringService } from '../../core/services/monitoring.service';
+import { ReportingService } from '../../core/services/reporting.service';
 import {
   DashboardKPIs,
   RiskSemaphore,
@@ -27,7 +28,10 @@ import { PillBadgeComponent } from '../../shared/components/pill-badge/pill-badg
 })
 export class DashboardComponent implements OnInit {
   private monitoringService = inject(MonitoringService);
+  private reportingService = inject(ReportingService);
   private router = inject(Router);
+
+  readonly isExporting = this.reportingService.exporting;
 
   // Reactive State Signals - Dashboard General
   readonly kpis = signal<DashboardKPIs | null>(null);
@@ -219,5 +223,18 @@ export class DashboardComponent implements OnInit {
       default:
         return '⚡';
     }
+  }
+
+  // Export Engine Integration (HU-28)
+  exportCohortExcel(): void {
+    this.reportingService.downloadCohortSummary('xlsx');
+  }
+
+  exportStudentExcel(studentId: number, matricula?: string): void {
+    this.reportingService.downloadStudentDossier(studentId, 'xlsx', matricula);
+  }
+
+  exportStudentPdf(studentId: number, matricula?: string): void {
+    this.reportingService.downloadStudentDossier(studentId, 'pdf', matricula);
   }
 }

@@ -121,6 +121,19 @@ export class FullDossierReportComponent implements OnInit {
     window.print();
   }
 
+  // Export Engine Integration (HU-28)
+  exportExcel(): void {
+    const sId = this.studentId();
+    const st = this.student();
+    this.reportingService.downloadStudentDossier(sId, 'xlsx', st?.matricula);
+  }
+
+  exportPdf(): void {
+    const sId = this.studentId();
+    const st = this.student();
+    this.reportingService.downloadStudentDossier(sId, 'pdf', st?.matricula);
+  }
+
   goBack(): void {
     const sId = this.studentId();
     this.router.navigate(['/students', sId]);
