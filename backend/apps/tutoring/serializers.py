@@ -127,10 +127,10 @@ class TutoringSessionSerializer(serializers.ModelSerializer):
         return None
 
     def get_total_participantes(self, obj):
-        return obj.participants.count()
+        return len(obj.participants.all())
 
     def get_total_observaciones(self, obj):
-        return obj.observations.count()
+        return len(obj.observations.all())
 
 
 class TutoringSessionCreateSerializer(serializers.ModelSerializer):

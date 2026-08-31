@@ -300,3 +300,52 @@ class TutoringTests(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data, {"details": "Recurso eliminado correctamente", "success": True})
         self.assertFalse(TutoringSession.objects.filter(pk=s.id).exists())
+
+    def test_tutoring_sessions_list_optimized_orm_queries(self):
+        # Create multiple sessions with participants and observations
+        for i in range(5):
+            session = TutoringSession.objects.create(
+                student=self.student,
+                semester=self.semester_1,
+                fecha_sesion=date(2024, 3, 1 + i),
+                modalidad='PRESENCIAL',
+                resumen=f'Resumen sesión {i}',
+                created_by=self.coordinator
+            )
+            TutoringParticipant.objects.create(
+                session=session,
+                user=self.advisor_user,
+                rol_en_sesion='ASESOR_PRINCIPAL',
+                asistencia=True
+            )
+            TutoringParticipant.objects.create(
+                session=session,
+                user=self.student_user,
+                rol_en_sesion='ESTUDIANTE',
+                asistencia=True
+            )
+            TutoringObservation.objects.create(
+                session=session,
+                autor=self.advisor_user,
+                titulo_tema=f'Tema de avance {i}',
+                contenido=f'Comentarios constructivos {i}'
+            )
+
+        self.client.force_authenticate(user=self.coordinator)
+        # Using assertNumQueries to ensure query count is strictly bounded to 6 queries regardless of N sessions (N+1 eliminated)
+        with self.assertNumQueries(6):
+            # 1. count query for pagination
+            # 2. tutoring sessions with select_related ('student', 'semester', 'created_by')
+            # 3. participants in batch for all sessions
+            # 4. participant users in batch
+            # 5. observations in batch for all sessions
+            # 6. observation authors in batch
+            resp = self.client.get(f'/api/v2/tutoring-sessions/?student={self.student.id}')
+            self.assertEqual(resp.status_code, status.HTTP_200_OK)
+            self.assertEqual(len(resp.data['results']), 5)
+            # Check serialized fields
+            first = resp.data['results'][0]
+            self.assertEqual(first['total_participantes'], 2)
+            self.assertEqual(first['total_observaciones'], 1)
+            self.assertEqual(len(first['participants']), 2)
+            self.assertEqual(len(first['observations']), 1)
