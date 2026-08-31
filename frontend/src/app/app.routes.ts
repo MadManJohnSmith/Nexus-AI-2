@@ -23,6 +23,14 @@ export const routes: Routes = [
         loadComponent: () => import('./features/student-overview/student-overview.component').then(m => m.StudentOverviewComponent)
       },
       {
+        path: 'students/:id/dossier',
+        loadComponent: () => import('./features/reporting/full-dossier-report/full-dossier-report.component').then(m => m.FullDossierReportComponent)
+      },
+      {
+        path: 'reporting/dossier/:id',
+        loadComponent: () => import('./features/reporting/full-dossier-report/full-dossier-report.component').then(m => m.FullDossierReportComponent)
+      },
+      {
         path: 'dashboard',
         loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
       },
