@@ -8,6 +8,7 @@ import { Agreement } from '../../core/models/agreement.model';
 import { ThesisProgress } from '../../core/models/thesis.model';
 import { TimelineNode } from '../../core/models/timeline.model';
 import { PillBadgeComponent } from '../../shared/components/pill-badge/pill-badge.component';
+import { TimelineComponent } from '../../shared/components/timeline/timeline.component';
 import { AcademicCommitteeComponent } from '../committee/academic-committee/academic-committee.component';
 import { AgreementDrawerComponent } from '../agreements/agreement-drawer/agreement-drawer.component';
 import { TutoringModalComponent } from '../tutoring/tutoring-modal/tutoring-modal.component';
@@ -19,6 +20,7 @@ import { TutoringModalComponent } from '../tutoring/tutoring-modal/tutoring-moda
     CommonModule,
     RouterModule,
     PillBadgeComponent,
+    TimelineComponent,
     AcademicCommitteeComponent,
     AgreementDrawerComponent,
     TutoringModalComponent
@@ -77,6 +79,11 @@ export class StudentOverviewComponent implements OnInit {
     const list = this.timelineNodes();
     if (sem === 'ALL') return list;
     return list.filter(node => node.semesterNumber === sem);
+  });
+
+  readonly studentIdNum = computed(() => {
+    const s = this.student();
+    return s ? Number(s.id) : 1;
   });
 
   // Summary counts for filtered active semester
