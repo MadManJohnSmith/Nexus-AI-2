@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Publication, AcademicEvent
+from .models import Publication, AcademicEvent, ResearchStay
 from apps.students.models import Student, Semester
 from apps.evidence.models import Evidence
 
@@ -152,5 +152,70 @@ class AcademicEventCreateSerializer(serializers.ModelSerializer):
         if student and semester and semester.student_id != student.id:
             raise serializers.ValidationError({
                 'semester': "El semestre seleccionado no pertenece al estudiante asignado."
+            })
+        return attrs
+
+
+class ResearchStaySerializer(serializers.ModelSerializer):
+    student_nombre = serializers.CharField(source='student.nombre_completo', read_only=True)
+    student_matricula = serializers.CharField(source='student.matricula', read_only=True)
+    evidencia_titulo = serializers.CharField(source='evidencia.titulo', read_only=True)
+
+    class Meta:
+        model = ResearchStay
+        fields = [
+            'id',
+            'student',
+            'student_nombre',
+            'student_matricula',
+            'institucion_receptora',
+            'pais',
+            'fecha_inicio',
+            'fecha_fin',
+            'responsable_estancia',
+            'objetivos',
+            'resultados',
+            'evidencia',
+            'evidencia_titulo',
+            'created_at',
+            'updated_at'
+        ]
+        read_only_fields = [
+            'id',
+            'student_nombre',
+            'student_matricula',
+            'evidencia_titulo',
+            'created_at',
+            'updated_at'
+        ]
+
+
+class ResearchStayCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResearchStay
+        fields = [
+            'id',
+            'student',
+            'institucion_receptora',
+            'pais',
+            'fecha_inicio',
+            'fecha_fin',
+            'responsable_estancia',
+            'objetivos',
+            'resultados',
+            'evidencia'
+        ]
+        extra_kwargs = {
+            'objetivos': {'required': False, 'allow_blank': True},
+            'resultados': {'required': False, 'allow_blank': True},
+            'evidencia': {'required': False, 'allow_null': True}
+        }
+
+    def validate(self, attrs):
+        fecha_inicio = attrs.get('fecha_inicio')
+        fecha_fin = attrs.get('fecha_fin')
+        if fecha_inicio and fecha_fin and fecha_fin < fecha_inicio:
+            raise serializers.ValidationError({
+                'fecha_fin': "La fecha de fin no puede ser anterior a la fecha de inicio."
             })
         return attrs

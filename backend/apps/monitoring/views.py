@@ -575,19 +575,19 @@ class TimelineView(APIView):
                         "metadata": {
                             "publication_id": pub.id,
                             "titulo": pub.titulo,
-                            "autores": pub.autores_texto,
+                            "autores": getattr(pub, 'autores_texto', ''),
                             "tipo": pub.tipo,
                             "tipo_display": pub.get_tipo_display() if hasattr(pub, 'get_tipo_display') else pub.tipo,
                             "revista_editorial": pub.revista_editorial,
                             "estado": pub.estado,
                             "estado_display": pub.get_estado_display() if hasattr(pub, 'get_estado_display') else pub.estado,
                             "fecha_publicacion": str(pub.fecha_publicacion) if pub.fecha_publicacion else None,
-                            "doi_url": pub.doi_url,
+                            "doi_url": getattr(pub, 'doi_url', ''),
                             "evidencia_id": pub.evidencia_id,
                             "semestre": f"Semestre {pub.semester.numero}" if pub.semester else None
                         }
                     })
-        except LookupError:
+        except Exception:
             pass
 
         # 6. CONGRESOS Y COLOQUIOS
@@ -596,28 +596,28 @@ class TimelineView(APIView):
             if AcademicEvent:
                 event_qs = AcademicEvent.objects.filter(student=student).select_related('semester', 'evidencia')
                 for a_ev in event_qs:
-                    fecha_ev = str(getattr(a_ev, 'fecha_evento', None) or getattr(a_ev, 'fecha_inicio', None) or a_ev.created_at.date())
+                    fecha_ev = str(getattr(a_ev, 'fecha_presentacion', None) or getattr(a_ev, 'fecha_evento', None) or getattr(a_ev, 'fecha_inicio', None) or a_ev.created_at.date())
                     events.append({
                         "id": f"congreso-{a_ev.id}",
                         "tipo": "CONGRESO",
                         "titulo": f"Congreso: {getattr(a_ev, 'nombre_evento', getattr(a_ev, 'nombre', 'Evento Académico'))}",
                         "descripcion": f"Ponencia: {getattr(a_ev, 'titulo_ponencia', getattr(a_ev, 'ponencia', 'Participación'))}",
                         "fecha": fecha_ev,
-                        "estado": getattr(a_ev, 'tipo', 'CONGRESO'),
+                        "estado": getattr(a_ev, 'tipo_evento', getattr(a_ev, 'tipo', 'CONGRESO')),
                         "icono": "🏛️",
                         "color": "#57949D",
                         "metadata": {
                             "event_id": a_ev.id,
                             "nombre_evento": getattr(a_ev, 'nombre_evento', getattr(a_ev, 'nombre', '')),
                             "titulo_ponencia": getattr(a_ev, 'titulo_ponencia', getattr(a_ev, 'ponencia', '')),
-                            "tipo": getattr(a_ev, 'tipo', 'CONGRESO'),
-                            "sede": getattr(a_ev, 'sede', getattr(a_ev, 'lugar', '')),
-                            "pais": getattr(a_ev, 'pais', ''),
+                            "tipo": getattr(a_ev, 'tipo_evento', getattr(a_ev, 'tipo', 'CONGRESO')),
+                            "sede": getattr(a_ev, 'sede_lugar', getattr(a_ev, 'sede', getattr(a_ev, 'lugar', ''))),
+                            "modalidad": getattr(a_ev, 'modalidad', 'PRESENCIAL'),
                             "fecha_evento": fecha_ev,
                             "semestre": f"Semestre {a_ev.semester.numero}" if getattr(a_ev, 'semester', None) else None
                         }
                     })
-        except LookupError:
+        except Exception:
             pass
 
         # 7. ESTANCIAS DE INVESTIGACIÓN
@@ -646,7 +646,7 @@ class TimelineView(APIView):
                             "semestre": f"Semestre {stay.semester.numero}" if getattr(stay, 'semester', None) else None
                         }
                     })
-        except LookupError:
+        except Exception:
             pass
 
         # 8. OTROS PRODUCTOS ACADÉMICOS
@@ -674,7 +674,7 @@ class TimelineView(APIView):
                             "semestre": f"Semestre {prod.semester.numero}" if getattr(prod, 'semester', None) else None
                         }
                     })
-        except LookupError:
+        except Exception:
             pass
 
         # Sort timeline descending by date and id
