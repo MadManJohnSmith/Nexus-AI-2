@@ -898,3 +898,353 @@ $text-muted: #667085;
     }
   }
 }
+
+// -------------------------------------------------------------
+// Active Supervision Rules Section (HU-26)
+// -------------------------------------------------------------
+.supervision-section {
+  background-color: $bg-card;
+  border-radius: 12px;
+  border: 1px solid $border;
+  padding: 24px 28px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  .section-heading-with-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    .supervision-pill {
+      display: inline-block;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      color: #6365EF;
+      background-color: #EEF4FF;
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: $emphasis;
+      margin: 0 0 4px 0;
+    }
+
+    .section-subtitle {
+      font-size: 0.875rem;
+      color: $text-muted;
+      margin: 0;
+      max-width: 650px;
+    }
+  }
+
+  .supervision-summary-badges {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .summary-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      background-color: $bg-app;
+      border: 1px solid $border;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: $text-main;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      .chip-icon {
+        font-size: 0.9375rem;
+      }
+
+      .chip-count {
+        background-color: #E0EAFF;
+        color: $primary;
+        padding: 2px 7px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+
+      &:hover {
+        border-color: $primary;
+      }
+
+      &.active {
+        background-color: #EEF4FF;
+        border-color: $primary;
+        color: $primary;
+
+        .chip-count {
+          background-color: $primary;
+          color: #FFFFFF;
+        }
+      }
+    }
+  }
+
+  .supervision-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 4px;
+    border-top: 1px solid $border;
+
+    .toolbar-label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: $text-muted;
+    }
+
+    .sev-pills {
+      display: flex;
+      gap: 6px;
+
+      .sev-chip {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border: 1px solid $border;
+        background-color: #FFFFFF;
+        color: $text-muted;
+        cursor: pointer;
+        transition: all 0.15s ease;
+
+        &:hover {
+          background-color: $bg-app;
+        }
+
+        &.active {
+          background-color: $emphasis;
+          border-color: $emphasis;
+          color: #FFFFFF;
+        }
+
+        &.chip-alta.active {
+          background-color: #F8F1FF;
+          border-color: #A14D98;
+          color: #A14D98;
+        }
+
+        &.chip-media.active {
+          background-color: #FEF8F3;
+          border-color: #B57136;
+          color: #B57136;
+        }
+
+        &.chip-informativa.active {
+          background-color: #F6FCFE;
+          border-color: #57949D;
+          color: #57949D;
+        }
+      }
+    }
+  }
+
+  .supervision-loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 24px;
+    color: $text-muted;
+    font-size: 0.875rem;
+
+    .spinner-sm {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #E0EAFF;
+      border-top-color: $primary;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+  }
+
+  .supervision-empty {
+    text-align: center;
+    padding: 32px 16px;
+    background-color: #FBFDFB;
+    border-radius: 8px;
+    border: 1px dashed #D0D5DD;
+
+    .empty-emoji {
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    h4 {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: $text-main;
+      margin: 0 0 4px 0;
+    }
+
+    p {
+      font-size: 0.8125rem;
+      color: $text-muted;
+      margin: 0;
+    }
+  }
+
+  .supervision-alerts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+
+    .supervision-card {
+      background-color: #FFFFFF;
+      border-radius: 8px;
+      border: 1px solid $border;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(16, 24, 40, 0.08);
+      }
+
+      &.alert-sev-alta {
+        border-left: 4px solid #A14D98;
+        background-color: #FDFAFF;
+      }
+
+      &.alert-sev-media {
+        border-left: 4px solid #B57136;
+        background-color: #FFFCF9;
+      }
+
+      &.alert-sev-informativa {
+        border-left: 4px solid #57949D;
+        background-color: #FBFEFF;
+      }
+
+      .supervision-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .alert-type-indicator {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+
+          .rule-icon {
+            font-size: 1.125rem;
+          }
+
+          .rule-id {
+            font-size: 0.6875rem;
+            font-weight: 700;
+            color: $text-muted;
+            background-color: $bg-app;
+            padding: 2px 6px;
+            border-radius: 4px;
+          }
+        }
+      }
+
+      .supervision-card-body {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+
+        .alert-title {
+          font-size: 0.9375rem;
+          font-weight: 700;
+          color: $text-main;
+          margin: 0;
+        }
+
+        .alert-message {
+          font-size: 0.8125rem;
+          color: $text-muted;
+          margin: 0;
+          line-height: 1.4;
+        }
+
+        .alert-student-info {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: 4px;
+          padding: 4px 8px;
+          background-color: rgba(99, 101, 239, 0.06);
+          border-radius: 6px;
+          font-size: 0.8125rem;
+
+          .student-name-tag {
+            font-weight: 600;
+            color: $emphasis;
+          }
+
+          .student-mat-tag {
+            color: $text-muted;
+          }
+        }
+
+        .alert-meta-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.75rem;
+          padding-top: 4px;
+          border-top: 1px dashed $border;
+
+          .meta-label {
+            color: $text-muted;
+          }
+
+          .meta-val {
+            color: $text-main;
+
+            &.meta-danger {
+              color: #A14D98;
+            }
+          }
+        }
+      }
+
+      .supervision-card-footer {
+        padding-top: 8px;
+        border-top: 1px solid $border;
+        display: flex;
+        justify-content: flex-end;
+
+        .btn-alert-action {
+          background-color: transparent;
+          color: $primary;
+          border: 1px solid rgba(99, 101, 239, 0.25);
+          border-radius: 6px;
+          padding: 5px 12px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s ease;
+
+          &:hover {
+            background-color: $primary;
+            color: #FFFFFF;
+          }
+        }
+      }
+    }
+  }
+}

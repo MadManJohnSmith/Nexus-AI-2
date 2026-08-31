@@ -3,6 +3,11 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { AlertsResponse, AlertItem, TimelineResponse } from '../models/timeline.model';
 import { CoordinatorDashboardResponse } from '../models/dashboard.model';
+import {
+  SupervisionAlertItem,
+  SupervisionAlertsResponse,
+  SupervisionAlertsCountByType
+} from '../models/supervision-alert.model';
 
 @Injectable({
   providedIn: 'root'
@@ -16,6 +21,17 @@ export class MonitoringService {
   readonly totalAlertas = signal<number>(0);
   readonly loadingAlerts = signal<boolean>(false);
   readonly errorAlerts = signal<string | null>(null);
+
+  // Supervision Rules Engine Signals (HU-26)
+  readonly supervisionAlerts = signal<SupervisionAlertItem[]>([]);
+  readonly supervisionSummary = signal<SupervisionAlertsCountByType>({
+    falta_tutoria: 0,
+    acuerdo_sin_evidencia: 0,
+    proxima_tutoria: 0
+  });
+  readonly totalSupervisionAlertas = signal<number>(0);
+  readonly loadingSupervisionAlerts = signal<boolean>(false);
+  readonly errorSupervisionAlerts = signal<string | null>(null);
 
   /**
    * Obtiene la lista reactiva de alertas del sistema (acuerdos vencidos, por vencer, falta de tutoría).
@@ -49,6 +65,47 @@ export class MonitoringService {
    */
   refreshAlerts(studentId?: number): void {
     this.getAlerts(studentId).subscribe({
+      error: () => {}
+    });
+  }
+
+  /**
+   * Obtiene las alertas proactivas del Motor de Reglas de Supervisión Activa (HU-26).
+   */
+  getSupervisionAlerts(studentId?: number): Observable<SupervisionAlertsResponse> {
+    this.loadingSupervisionAlerts.set(true);
+    this.errorSupervisionAlerts.set(null);
+
+    let params = new HttpParams();
+    if (studentId) {
+      params = params.set('student', studentId.toString());
+    }
+
+    return this.http.get<SupervisionAlertsResponse>(`${this.apiUrl}/supervision-alerts/`, { params }).pipe(
+      tap({
+        next: (res) => {
+          this.supervisionAlerts.set(res.alertas || []);
+          this.supervisionSummary.set(res.alertas_por_tipo || {
+            falta_tutoria: 0,
+            acuerdo_sin_evidencia: 0,
+            proxima_tutoria: 0
+          });
+          this.totalSupervisionAlertas.set(res.total_alertas || 0);
+          this.loadingSupervisionAlerts.set(false);
+        },
+        error: (err) => {
+          this.errorSupervisionAlerts.set(err.message || 'Error al cargar alertas de supervisión');
+          this.loadingSupervisionAlerts.set(false);
+        }
+      })
+    );
+  }
+
+  /**
+   * Refresca las alertas de supervisión activa.
+   */
+  refreshSupervisionAlerts(studentId?: number): void {
+    this.getSupervisionAlerts(studentId).subscribe({
       error: () => {}
     });
   }

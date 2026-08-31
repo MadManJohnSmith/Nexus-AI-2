@@ -10,6 +10,11 @@ import {
   CohortDistribution,
   RiskLevel
 } from '../../core/models/dashboard.model';
+import {
+  SupervisionAlertItem,
+  SupervisionAlertType,
+  SupervisionAlertSeverity
+} from '../../core/models/supervision-alert.model';
 import { PillBadgeComponent } from '../../shared/components/pill-badge/pill-badge.component';
 
 @Component({
@@ -24,7 +29,7 @@ export class DashboardComponent implements OnInit {
   private monitoringService = inject(MonitoringService);
   private router = inject(Router);
 
-  // Reactive State Signals
+  // Reactive State Signals - Dashboard General
   readonly kpis = signal<DashboardKPIs | null>(null);
   readonly riskSemaphore = signal<RiskSemaphore | null>(null);
   readonly prioritizedStudents = signal<PrioritizedStudent[]>([]);
@@ -36,6 +41,16 @@ export class DashboardComponent implements OnInit {
   readonly riskFilter = signal<RiskLevel | 'TODOS'>('TODOS');
   readonly cohortFilter = signal<string>('TODAS');
   readonly searchTerm = signal<string>('');
+
+  // Supervision Rules Signals (HU-26)
+  readonly supervisionAlerts = this.monitoringService.supervisionAlerts;
+  readonly supervisionSummary = this.monitoringService.supervisionSummary;
+  readonly totalSupervisionAlertas = this.monitoringService.totalSupervisionAlertas;
+  readonly loadingSupervision = this.monitoringService.loadingSupervisionAlerts;
+  readonly errorSupervision = this.monitoringService.errorSupervisionAlerts;
+
+  readonly supervisionTypeFilter = signal<SupervisionAlertType | 'TODAS'>('TODAS');
+  readonly supervisionSeverityFilter = signal<SupervisionAlertSeverity | 'TODAS'>('TODAS');
 
   // Available unique cohorts
   readonly availableCohorts = computed(() => {
@@ -69,8 +84,30 @@ export class DashboardComponent implements OnInit {
     return result;
   });
 
+  // Filtered Supervision Alerts Computed Signal (HU-26)
+  readonly filteredSupervisionAlerts = computed(() => {
+    let alerts = this.supervisionAlerts();
+    const typeF = this.supervisionTypeFilter();
+    const sevF = this.supervisionSeverityFilter();
+
+    if (typeF !== 'TODAS') {
+      alerts = alerts.filter(a => a.tipo === typeF);
+    }
+
+    if (sevF !== 'TODAS') {
+      alerts = alerts.filter(a => a.severidad === sevF);
+    }
+
+    return alerts;
+  });
+
   ngOnInit(): void {
+    this.loadAll();
+  }
+
+  loadAll(): void {
     this.loadDashboard();
+    this.loadSupervisionAlerts();
   }
 
   loadDashboard(): void {
@@ -92,6 +129,12 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  loadSupervisionAlerts(): void {
+    this.monitoringService.getSupervisionAlerts().subscribe({
+      error: () => {}
+    });
+  }
+
   setRiskFilter(filter: RiskLevel | 'TODOS'): void {
     this.riskFilter.set(filter);
   }
@@ -110,8 +153,20 @@ export class DashboardComponent implements OnInit {
     this.searchTerm.set('');
   }
 
+  setSupervisionTypeFilter(type: SupervisionAlertType | 'TODAS'): void {
+    this.supervisionTypeFilter.set(type);
+  }
+
+  setSupervisionSeverityFilter(sev: SupervisionAlertSeverity | 'TODAS'): void {
+    this.supervisionSeverityFilter.set(sev);
+  }
+
   navigateToStudent(studentId: number): void {
     this.router.navigate(['/students', studentId]);
+  }
+
+  navigateToDossier(studentId: number): void {
+    this.router.navigate(['/students', studentId, 'dossier']);
   }
 
   getRiskBadgeType(nivel: RiskLevel): 'VENCIDO' | 'EN_PROCESO' | 'CONCLUIDO' {
@@ -137,6 +192,32 @@ export class DashboardComponent implements OnInit {
         return 'Al Día';
       default:
         return nivel;
+    }
+  }
+
+  getSeverityBadgeType(sev: SupervisionAlertSeverity): 'VENCIDO' | 'EN_PROCESO' | 'PENDIENTE' | 'CONCLUIDO' {
+    switch (sev) {
+      case 'ALTA':
+        return 'VENCIDO';
+      case 'MEDIA':
+        return 'EN_PROCESO';
+      case 'INFORMATIVA':
+        return 'PENDIENTE';
+      default:
+        return 'CONCLUIDO';
+    }
+  }
+
+  getSupervisionTypeIcon(type: SupervisionAlertType): string {
+    switch (type) {
+      case 'FALTA_TUTORIA_ACTIVA':
+        return '📘';
+      case 'ACUERDO_SIN_EVIDENCIA':
+        return '📎';
+      case 'PROXIMA_TUTORIA_CERCANA':
+        return '📅';
+      default:
+        return '⚡';
     }
   }
 }

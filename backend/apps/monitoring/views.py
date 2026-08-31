@@ -685,3 +685,40 @@ class TimelineView(APIView):
             "total_eventos": len(events),
             "timeline": events
         }, status=status.HTTP_200_OK)
+
+
+class SupervisionAlertsView(APIView):
+    """
+    GET /api/v2/monitoring/supervision-alerts/
+    
+    Motor de Reglas de Supervisión Activa (HU-26).
+    Evalúa de forma centralizada:
+    1. FALTA_TUTORIA_ACTIVA: Alumnos >45 días sin tutoría en semestre activo.
+    2. ACUERDO_SIN_EVIDENCIA: Acuerdos concluidos sin evidencia adjunta vinculada.
+    3. PROXIMA_TUTORIA_CERCANA: Próximas tutorías calendarizadas en <= 7 días.
+    
+    Aislamiento RBAC:
+    - Coordinadores/Admin/Superuser: Acceso global a todos los estudiantes activos.
+    - Asesores: Acceso limitado a estudiantes asignados en comités tutoriales activos.
+    - Estudiantes: Acceso restringido a sus propias alertas académicas.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        student_id = request.query_params.get('student')
+        if student_id:
+            try:
+                student_id = int(student_id)
+            except (ValueError, TypeError):
+                student_id = None
+
+        from .supervision_rules import SupervisionRulesEngine
+
+        engine = SupervisionRulesEngine(
+            user=request.user,
+            student_id=student_id
+        )
+
+        data = engine.run_all_rules()
+        return Response(data, status=status.HTTP_200_OK)
+
