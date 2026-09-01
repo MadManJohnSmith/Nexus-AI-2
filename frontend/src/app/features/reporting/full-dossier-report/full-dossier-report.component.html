@@ -116,7 +116,7 @@
           <span class="section-number">1</span>
           <h3>Ficha de Identificación del Doctorando y Programa</h3>
         </div>
-        <button class="section-toggle no-print" type="button">
+        <button class="section-toggle no-print" type="button" (click)="toggleSection('student'); $event.stopPropagation()">
           {{ isSectionCollapsed('student') ? '➕ Expandir' : '➖ Colapsar' }}
         </button>
       </div>
@@ -160,7 +160,7 @@
           <span class="section-number">2</span>
           <h3>Comité Tutorial y Asignaciones Académicas</h3>
         </div>
-        <button class="section-toggle no-print" type="button">
+        <button class="section-toggle no-print" type="button" (click)="toggleSection('committee'); $event.stopPropagation()">
           {{ isSectionCollapsed('committee') ? '➕ Expandir' : '➖ Colapsar' }}
         </button>
       </div>
@@ -204,7 +204,7 @@
           <span class="section-number">3</span>
           <h3>Trayectoria y Cronograma Semestral</h3>
         </div>
-        <button class="section-toggle no-print" type="button">
+        <button class="section-toggle no-print" type="button" (click)="toggleSection('semesters'); $event.stopPropagation()">
           {{ isSectionCollapsed('semesters') ? '➕ Expandir' : '➖ Colapsar' }}
         </button>
       </div>
@@ -246,7 +246,7 @@
           <span class="section-number">4</span>
           <h3>Cuadro de Indicadores Clave de Desempeño (KPIs)</h3>
         </div>
-        <button class="section-toggle no-print" type="button">
+        <button class="section-toggle no-print" type="button" (click)="toggleSection('kpis'); $event.stopPropagation()">
           {{ isSectionCollapsed('kpis') ? '➕ Expandir' : '➖ Colapsar' }}
         </button>
       </div>
@@ -304,7 +304,7 @@
           <span class="section-number">5</span>
           <h3>Historial Cronológico de Sesiones de Tutoría</h3>
         </div>
-        <button class="section-toggle no-print" type="button">
+        <button class="section-toggle no-print" type="button" (click)="toggleSection('tutoring'); $event.stopPropagation()">
           {{ isSectionCollapsed('tutoring') ? '➕ Expandir' : '➖ Colapsar' }}
         </button>
       </div>
@@ -373,7 +373,7 @@
           <span class="section-number">6</span>
           <h3>Historial de Acuerdos y Compromisos de Trabajo</h3>
         </div>
-        <button class="section-toggle no-print" type="button">
+        <button class="section-toggle no-print" type="button" (click)="toggleSection('agreements'); $event.stopPropagation()">
           {{ isSectionCollapsed('agreements') ? '➕ Expandir' : '➖ Colapsar' }}
         </button>
       </div>
@@ -425,7 +425,7 @@
           <span class="section-number">7</span>
           <h3>Evolución Histórica de Tesis y Componentes Temáticos</h3>
         </div>
-        <button class="section-toggle no-print" type="button">
+        <button class="section-toggle no-print" type="button" (click)="toggleSection('thesis'); $event.stopPropagation()">
           {{ isSectionCollapsed('thesis') ? '➕ Expandir' : '➖ Colapsar' }}
         </button>
       </div>
@@ -480,7 +480,7 @@
           <span class="section-number">8</span>
           <h3>Producción Científica y Trayectoria de Investigación</h3>
         </div>
-        <button class="section-toggle no-print" type="button">
+        <button class="section-toggle no-print" type="button" (click)="toggleSection('output'); $event.stopPropagation()">
           {{ isSectionCollapsed('output') ? '➕ Expandir' : '➖ Colapsar' }}
         </button>
       </div>
@@ -631,7 +631,7 @@
           <span class="section-number">9</span>
           <h3>Repositorio Documental y Evidencias Adjuntas</h3>
         </div>
-        <button class="section-toggle no-print" type="button">
+        <button class="section-toggle no-print" type="button" (click)="toggleSection('evidences'); $event.stopPropagation()">
           {{ isSectionCollapsed('evidences') ? '➕ Expandir' : '➖ Colapsar' }}
         </button>
       </div>
