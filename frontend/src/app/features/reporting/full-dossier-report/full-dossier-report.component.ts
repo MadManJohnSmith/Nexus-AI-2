@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed, inject, ChangeDetectionStrategy, i
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { ReportingService } from '../../../core/services/reporting.service';
+import { PeriodService } from '../../../core/services/period.service';
 import { FullDossier, DossierThesisProgress } from '../../../core/models/dossier.model';
 import { PillBadgeComponent, PillBadgeType } from '../../../shared/components/pill-badge/pill-badge.component';
 
@@ -15,6 +16,7 @@ import { PillBadgeComponent, PillBadgeType } from '../../../shared/components/pi
 })
 export class FullDossierReportComponent implements OnInit {
   private reportingService = inject(ReportingService);
+  readonly periodService = inject(PeriodService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 

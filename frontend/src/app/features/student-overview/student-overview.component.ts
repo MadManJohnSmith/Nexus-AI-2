@@ -9,6 +9,7 @@ import { TutoringSession } from '../../core/models/tutoring.model';
 import { Agreement } from '../../core/models/agreement.model';
 import { ThesisProgress } from '../../core/models/thesis.model';
 import { TimelineNode } from '../../core/models/timeline.model';
+import { PeriodService } from '../../core/services/period.service';
 import { PillBadgeComponent } from '../../shared/components/pill-badge/pill-badge.component';
 import { TimelineComponent } from '../../shared/components/timeline/timeline.component';
 import { AcademicCommitteeComponent } from '../committee/academic-committee/academic-committee.component';
@@ -39,6 +40,7 @@ export class StudentOverviewComponent implements OnInit {
   private studentService = inject(StudentService);
   private thesisService = inject(ThesisService);
   private reportingService = inject(ReportingService);
+  readonly periodService = inject(PeriodService);
   private route = inject(ActivatedRoute);
 
   // Export state

@@ -30,6 +30,8 @@
             <span><strong>Cohorte:</strong> {{ student()?.cohorte || student()?.cohort }}</span>
             <span class="meta-dot">•</span>
             <span><strong>Semestre Actual:</strong> {{ student()?.currentSemester }}° Semestre</span>
+            <span class="meta-dot">•</span>
+            <span class="cycle-tag">Ciclo: <strong>{{ periodService.activePeriod() }}</strong></span>
           </div>
         </div>
       </div>

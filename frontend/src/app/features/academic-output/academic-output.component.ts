@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { ActivatedRoute } from '@angular/router';
 import { AcademicOutputService } from '../../core/services/academic-output.service';
 import { StudentService } from '../../core/services/student.service';
+import { PeriodService } from '../../core/services/period.service';
 import {
   Publication,
   PublicationType,
@@ -35,6 +36,7 @@ export type AcademicTab = 'PUBLICACIONES' | 'CONGRESOS' | 'ESTANCIAS' | 'PRODUCT
 export class AcademicOutputComponent implements OnInit {
   private academicService = inject(AcademicOutputService);
   private studentService = inject(StudentService);
+  readonly periodService = inject(PeriodService);
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
 

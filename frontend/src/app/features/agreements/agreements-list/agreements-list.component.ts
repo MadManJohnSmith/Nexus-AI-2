@@ -5,6 +5,7 @@ import { RouterModule } from '@angular/router';
 import { Agreement, AgreementStatus } from '../../../core/models/agreement.model';
 import { AgreementService } from '../../../core/services/agreement.service';
 import { StudentService } from '../../../core/services/student.service';
+import { PeriodService } from '../../../core/services/period.service';
 import { Student } from '../../../core/models/student.model';
 import { PillBadgeComponent } from '../../../shared/components/pill-badge/pill-badge.component';
 import { AgreementDrawerComponent } from '../agreement-drawer/agreement-drawer.component';
@@ -22,6 +23,7 @@ export type StatusFilterOption = 'TODOS' | AgreementStatus;
 export class AgreementsListComponent implements OnInit {
   private agreementService = inject(AgreementService);
   private studentService = inject(StudentService);
+  readonly periodService = inject(PeriodService);
 
   // State Signals
   readonly rawAgreements = signal<Agreement[]>([]);
