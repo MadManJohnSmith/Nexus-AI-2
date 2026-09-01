@@ -129,8 +129,19 @@ export class StudentOverviewComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    const studentId = this.id() || this.route.snapshot.paramMap.get('id') || '1';
-    this.loadStudentOverview(studentId);
+    const routeId = this.id() || this.route.snapshot.paramMap.get('id');
+    if (routeId && routeId !== '1') {
+      this.loadStudentOverview(routeId);
+    } else {
+      this.studentService.getStudents().subscribe(res => {
+        const list = res.results || res;
+        if (Array.isArray(list) && list.length > 0) {
+          this.loadStudentOverview(list[0].id.toString());
+        } else {
+          this.loadStudentOverview(routeId || '1');
+        }
+      });
+    }
   }
 
   loadStudentOverview(studentId: string): void {

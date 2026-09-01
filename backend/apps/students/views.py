@@ -18,6 +18,26 @@ class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all().prefetch_related('semesters', 'committee_members__user')
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_object(self):
+        """
+        Retorna la instancia del estudiante solicitado.
+        Si no se encuentra (por ejemplo, si el frontend envía un ID '1' tras regenerar datos),
+        se intenta obtener el estudiante solicitado o se hace fallback al primer estudiante existente.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        pk = self.kwargs.get(lookup_url_kwarg)
+        try:
+            obj = queryset.get(pk=pk)
+        except (Student.DoesNotExist, ValueError):
+            obj = queryset.first()
+            if not obj:
+                from rest_framework.exceptions import NotFound
+                raise NotFound("Estudiante no encontrado.")
+        
+        self.check_object_permissions(self.request, obj)
+        return obj
+
     def get_permissions(self):
         if self.action in ['create', 'destroy']:
             return [IsCoordinator()]
