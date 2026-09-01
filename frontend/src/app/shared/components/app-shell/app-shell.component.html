@@ -180,10 +180,9 @@
             class="nexus-period-selector__select"
             [value]="selectedPeriod()"
             (change)="onPeriodChange($event)">
-            <option value="2024-B">2024-B (Actual)</option>
-            <option value="2024-A">2024-A</option>
-            <option value="2023-B">2023-B</option>
-            <option value="2023-A">2023-A</option>
+            @for (p of periodService.periods(); track p.id) {
+              <option [value]="p.id">{{ p.label }}</option>
+            }
           </select>
         </div>
 

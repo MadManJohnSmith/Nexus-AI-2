@@ -4,6 +4,7 @@ import { RouterModule, Router, NavigationEnd, ActivatedRoute } from '@angular/ro
 import { filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { MonitoringService } from '../../../core/services/monitoring.service';
+import { PeriodService } from '../../../core/services/period.service';
 import { UserRole } from '../../../core/models/user.model';
 import { PillBadgeComponent } from '../pill-badge/pill-badge.component';
 
@@ -31,6 +32,7 @@ export interface BreadcrumbItem {
 export class AppShellComponent implements OnInit {
   readonly authService = inject(AuthService);
   readonly monitoringService = inject(MonitoringService);
+  readonly periodService = inject(PeriodService);
   private router = inject(Router);
   private activatedRoute = inject(ActivatedRoute);
 
@@ -39,7 +41,7 @@ export class AppShellComponent implements OnInit {
   readonly isMobileMenuOpen = signal<boolean>(false);
   readonly isProfileMenuOpen = signal<boolean>(false);
   readonly isNotificationsMenuOpen = signal<boolean>(false);
-  readonly selectedPeriod = signal<string>('2024-B');
+  readonly selectedPeriod = this.periodService.activePeriod;
 
 
   // Dynamic breadcrumbs
@@ -181,7 +183,7 @@ export class AppShellComponent implements OnInit {
 
   onPeriodChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
-    this.selectedPeriod.set(select.value);
+    this.periodService.setPeriod(select.value);
   }
 
   logout(): void {

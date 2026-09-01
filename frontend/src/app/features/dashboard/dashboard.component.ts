@@ -18,6 +18,8 @@ import {
 } from '../../core/models/supervision-alert.model';
 import { PillBadgeComponent } from '../../shared/components/pill-badge/pill-badge.component';
 
+import { PeriodService } from '../../core/services/period.service';
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -29,6 +31,7 @@ import { PillBadgeComponent } from '../../shared/components/pill-badge/pill-badg
 export class DashboardComponent implements OnInit {
   private monitoringService = inject(MonitoringService);
   private reportingService = inject(ReportingService);
+  readonly periodService = inject(PeriodService);
   private router = inject(Router);
 
   readonly isExporting = this.reportingService.exporting;
