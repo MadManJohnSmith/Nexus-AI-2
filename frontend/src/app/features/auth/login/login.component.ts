@@ -38,10 +38,23 @@ export class LoginComponent {
     const { email, password } = this.loginForm.value;
 
     this.authService.login({ email, password }).subscribe({
-      next: () => {
+      next: (res) => {
         this.loading.set(false);
-        const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
-        this.router.navigateByUrl(returnUrl);
+        const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+        const role = res.user?.role;
+        const studentId = res.user?.student_id || this.authService.getStudentId();
+
+        if (returnUrl && (!returnUrl.includes('/dashboard') || role !== 'ESTUDIANTE')) {
+          this.router.navigateByUrl(returnUrl);
+        } else {
+          if (role === 'ESTUDIANTE') {
+            this.router.navigate(['/students', studentId || 'me']);
+          } else if (role === 'ADMIN' || role === 'COORDINADOR') {
+            this.router.navigate(['/dashboard']);
+          } else {
+            this.router.navigate(['/students']);
+          }
+        }
       },
       error: (err) => {
         this.loading.set(false);

@@ -18,6 +18,7 @@ import {
 } from '../../core/models/supervision-alert.model';
 import { PillBadgeComponent } from '../../shared/components/pill-badge/pill-badge.component';
 
+import { AuthService } from '../../core/services/auth.service';
 import { PeriodService } from '../../core/services/period.service';
 
 @Component({
@@ -29,6 +30,7 @@ import { PeriodService } from '../../core/services/period.service';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardComponent implements OnInit {
+  private authService = inject(AuthService);
   private monitoringService = inject(MonitoringService);
   private reportingService = inject(ReportingService);
   readonly periodService = inject(PeriodService);
@@ -112,11 +114,18 @@ export class DashboardComponent implements OnInit {
     // Escucha reactiva a cambios en el selector de ciclo para recargar y filtrar métricas
     effect(() => {
       const activePeriod = this.periodService.activePeriod();
-      this.loadDashboard(activePeriod);
+      if (!this.authService.isStudent()) {
+        this.loadDashboard(activePeriod);
+      }
     });
   }
 
   ngOnInit(): void {
+    if (this.authService.isStudent()) {
+      const stId = this.authService.getStudentId();
+      this.router.navigate(['/students', stId || 'me']);
+      return;
+    }
     this.loadSupervisionAlerts();
   }
 

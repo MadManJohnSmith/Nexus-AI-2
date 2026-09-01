@@ -7,6 +7,7 @@ User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='get_full_name', read_only=True)
+    student_id = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -17,12 +18,18 @@ class UserSerializer(serializers.ModelSerializer):
             'last_name',
             'full_name',
             'role',
+            'student_id',
             'is_active',
             'is_staff',
             'created_at',
             'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_student_id(self, obj):
+        if hasattr(obj, 'student_profile') and obj.student_profile:
+            return obj.student_profile.id
+        return None
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -38,6 +45,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
+        student_id = self.user.student_profile.id if hasattr(self.user, 'student_profile') and self.user.student_profile else None
         data['user'] = {
             'id': self.user.id,
             'email': self.user.email,
@@ -45,5 +53,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'last_name': self.user.last_name,
             'role': self.user.role,
             'full_name': self.user.get_full_name(),
+            'student_id': student_id,
         }
         return data

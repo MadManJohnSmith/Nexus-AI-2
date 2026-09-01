@@ -23,12 +23,13 @@
 
   <!-- ================= STATS SUMMARY CARDS (SEMÁFORO DE ACUERDOS) ================= -->
   <section class="stats-grid" aria-label="Resumen de Acuerdos">
-    <div class="stat-card stat-card--total">
+    <div class="stat-card stat-card--total" (click)="setStatusFilter('TODOS')" role="button" tabindex="0">
       <div class="stat-card__icon-box">📊</div>
       <div class="stat-card__content">
         <span class="stat-card__label">Total Acuerdos</span>
         <span class="stat-card__value">{{ totalCount() }}</span>
       </div>
+      <span class="stat-card__pill">100%</span>
     </div>
 
     <div class="stat-card stat-card--pendiente" (click)="setStatusFilter('PENDIENTE')" role="button" tabindex="0">
@@ -37,7 +38,7 @@
         <span class="stat-card__label">Pendientes</span>
         <span class="stat-card__value">{{ pendingCount() }}</span>
       </div>
-      <span class="stat-card__pill">#57949D</span>
+      <span class="stat-card__pill">{{ pendingPercentage() }}%</span>
     </div>
 
     <div class="stat-card stat-card--en-proceso" (click)="setStatusFilter('EN_PROCESO')" role="button" tabindex="0">
@@ -46,7 +47,7 @@
         <span class="stat-card__label">En Proceso</span>
         <span class="stat-card__value">{{ inProgressCount() }}</span>
       </div>
-      <span class="stat-card__pill">#B57136</span>
+      <span class="stat-card__pill">{{ inProgressPercentage() }}%</span>
     </div>
 
     <div class="stat-card stat-card--concluido" (click)="setStatusFilter('CONCLUIDO')" role="button" tabindex="0">
@@ -55,7 +56,7 @@
         <span class="stat-card__label">Concluidos</span>
         <span class="stat-card__value">{{ concludedCount() }}</span>
       </div>
-      <span class="stat-card__pill">#437E5C</span>
+      <span class="stat-card__pill">{{ concludedPercentage() }}%</span>
     </div>
 
     <div class="stat-card stat-card--vencido" (click)="setStatusFilter('VENCIDO')" role="button" tabindex="0">
@@ -64,7 +65,7 @@
         <span class="stat-card__label">Vencidos / Alerta</span>
         <span class="stat-card__value">{{ overdueCount() }}</span>
       </div>
-      <span class="stat-card__pill">#A14D98</span>
+      <span class="stat-card__pill">{{ overduePercentage() }}%</span>
     </div>
   </section>
 

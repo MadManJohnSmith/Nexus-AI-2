@@ -20,8 +20,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      // If 401 Unauthorized, logout and redirect to login if not already on login
-      if (error.status === 401 && !req.url.includes('/auth/login/')) {
+      // If 401 Unauthorized, or 403 when no token is present, logout and redirect to login if not already on login
+      if ((error.status === 401 || (!token && error.status === 403)) && !req.url.includes('/auth/login/')) {
         authService.logout();
       }
       return throwError(() => error);

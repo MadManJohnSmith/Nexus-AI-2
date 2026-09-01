@@ -49,8 +49,40 @@ class ThesisProgressCreateSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'observaciones': {'required': False, 'allow_blank': True},
             'fecha_registro': {'required': False},
-            'componentes_json': {'required': False}
+            'componentes_json': {'required': False},
+            'semester': {'required': False}
         }
+
+    def to_internal_value(self, data):
+        data = data.copy() if hasattr(data, 'copy') else dict(data)
+        student_val = data.get('student')
+        sem_val = data.get('semester')
+        
+        if student_val:
+            try:
+                st = Student.objects.filter(pk=student_val).first() if not isinstance(student_val, Student) else student_val
+                if st:
+                    if sem_val is not None:
+                        # 1. Direct valid Semester PK belonging to student
+                        sem_obj = Semester.objects.filter(pk=sem_val).first()
+                        if sem_obj and sem_obj.student_id == st.id:
+                            data['semester'] = sem_obj.pk
+                        else:
+                            # 2. Maybe sem_val is the semester numero (1..6)
+                            match_num = st.semesters.filter(numero=sem_val).first()
+                            if match_num:
+                                data['semester'] = match_num.pk
+                            else:
+                                active = st.semesters.filter(is_active=True).first() or st.semesters.first()
+                                if active:
+                                    data['semester'] = active.pk
+                    else:
+                        active = st.semesters.filter(is_active=True).first() or st.semesters.first()
+                        if active:
+                            data['semester'] = active.pk
+            except Exception:
+                pass
+        return super().to_internal_value(data)
 
     def validate_porcentaje_avance(self, value):
         if value < 0 or value > 100:
@@ -73,8 +105,25 @@ class ThesisProgressCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         student = attrs.get('student')
         semester = attrs.get('semester')
-        if student and semester and semester.student_id != student.id:
-            raise serializers.ValidationError({
-                'semester': "El semestre seleccionado no pertenece al estudiante asignado."
-            })
+        if student:
+            if semester:
+                if semester.student_id != student.id:
+                    matched = student.semesters.filter(numero=semester.numero).first()
+                    if not matched:
+                        matched = student.semesters.filter(is_active=True).first() or student.semesters.first()
+                    
+                    if matched:
+                        attrs['semester'] = matched
+                    else:
+                        raise serializers.ValidationError({
+                            'semester': "El semestre seleccionado no pertenece al estudiante asignado."
+                        })
+            else:
+                active_sem = student.semesters.filter(is_active=True).first() or student.semesters.first()
+                if active_sem:
+                    attrs['semester'] = active_sem
+                else:
+                    raise serializers.ValidationError({
+                        'semester': "El estudiante no tiene semestres registrados."
+                    })
         return attrs

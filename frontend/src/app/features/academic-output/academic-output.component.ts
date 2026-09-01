@@ -1,7 +1,8 @@
-import { Component, OnInit, signal, computed, inject, effect } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, effect, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
 import { AcademicOutputService } from '../../core/services/academic-output.service';
 import { StudentService } from '../../core/services/student.service';
 import { PeriodService } from '../../core/services/period.service';
@@ -34,6 +35,7 @@ export type AcademicTab = 'PUBLICACIONES' | 'CONGRESOS' | 'ESTANCIAS' | 'PRODUCT
   styleUrls: ['./academic-output.component.scss']
 })
 export class AcademicOutputComponent implements OnInit {
+  private authService = inject(AuthService);
   private academicService = inject(AcademicOutputService);
   private studentService = inject(StudentService);
   readonly periodService = inject(PeriodService);
@@ -120,7 +122,8 @@ export class AcademicOutputComponent implements OnInit {
   constructor() {
     effect(() => {
       const period = this.periodService.activePeriod();
-      const list = this.studentsList();
+      if (this.authService.isStudent()) return;
+      const list = untracked(() => this.studentsList());
       if (period !== 'TODOS' && list.length > 0) {
         const matching = list.find(s => s.cohorte === period || s.cohort === period);
         if (matching && matching.id !== this.selectedStudentId()) {
@@ -134,6 +137,14 @@ export class AcademicOutputComponent implements OnInit {
 
   ngOnInit(): void {
     this.initForms();
+
+    if (this.authService.isStudent()) {
+      const myId = this.authService.getStudentId() || 1;
+      this.selectedStudentId.set(myId);
+      this.loadStudentData();
+      this.loadAllAcademicOutput();
+      return;
+    }
 
     // Check query params
     this.route.queryParams.subscribe(params => {
@@ -154,8 +165,10 @@ export class AcademicOutputComponent implements OnInit {
       const students = res?.results || [];
       this.studentsList.set(students);
       if (!this.currentStudent() && students.length > 0) {
-        this.selectedStudentId.set(students[0].id);
-        this.currentStudent.set(students[0]);
+        const targetId = this.selectedStudentId() || students[0].id;
+        this.selectedStudentId.set(targetId);
+        const match = students.find(s => s.id === targetId) || students[0];
+        this.currentStudent.set(match);
         this.loadAllAcademicOutput();
       }
     });

@@ -21,16 +21,34 @@ class StudentViewSet(viewsets.ModelViewSet):
     def get_object(self):
         """
         Retorna la instancia del estudiante solicitado.
-        Si no se encuentra (por ejemplo, si el frontend envía un ID '1' tras regenerar datos),
-        se intenta obtener el estudiante solicitado o se hace fallback al primer estudiante existente.
+        Si no se encuentra (por ejemplo, si el frontend envía un ID '1' tras regenerar datos o 'me'),
+        se intenta obtener el estudiante solicitado o se hace fallback seguro según el rol del usuario autenticado.
         """
         queryset = self.filter_queryset(self.get_queryset())
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
         pk = self.kwargs.get(lookup_url_kwarg)
+        user = self.request.user
+
         try:
-            obj = queryset.get(pk=pk)
+            if pk == 'me':
+                if hasattr(user, 'student_profile') and user.student_profile:
+                    obj = user.student_profile
+                else:
+                    obj = queryset.first()
+            else:
+                obj = queryset.get(pk=pk)
         except (Student.DoesNotExist, ValueError):
-            obj = queryset.first()
+            if user.is_authenticated:
+                if getattr(user, 'role', None) == 'ESTUDIANTE' and hasattr(user, 'student_profile') and user.student_profile:
+                    obj = user.student_profile
+                elif getattr(user, 'role', None) in ['ASESOR', 'COASESOR', 'COMITE']:
+                    assigned = queryset.filter(committee_members__user=user, committee_members__is_active=True).first()
+                    obj = assigned or queryset.first()
+                else:
+                    obj = queryset.first()
+            else:
+                obj = queryset.first()
+
             if not obj:
                 from rest_framework.exceptions import NotFound
                 raise NotFound("Estudiante no encontrado.")

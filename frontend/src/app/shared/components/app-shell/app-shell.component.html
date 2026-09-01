@@ -47,7 +47,7 @@
         <div class="nexus-sidebar__section-title">MENÚ PRINCIPAL</div>
       }
       <ul class="nexus-sidebar__menu">
-        @for (item of filteredNavItems(); track item.route) {
+        @for (item of filteredNavItems(); track item.label) {
           <li class="nexus-sidebar__item">
             <a 
               [routerLink]="item.route" 
@@ -156,7 +156,7 @@
         <!-- Dynamic Breadcrumbs -->
         <nav class="nexus-breadcrumbs" aria-label="Ruta de navegación">
           <ol class="nexus-breadcrumbs__list">
-            @for (crumb of breadcrumbs(); track crumb.url; let last = $last) {
+            @for (crumb of breadcrumbs(); track (crumb.label + '_' + $index); let last = $last) {
               <li class="nexus-breadcrumbs__item" [class.nexus-breadcrumbs__item--active]="last">
                 @if (!last) {
                   <a [routerLink]="crumb.url" class="nexus-breadcrumbs__link">{{ crumb.label }}</a>

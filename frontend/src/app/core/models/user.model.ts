@@ -11,6 +11,8 @@ export interface User {
   fullName?: string;
   full_name?: string;
   role: UserRole;
+  student_id?: number;
+  studentId?: number;
   isActive?: boolean;
   is_active?: boolean;
   isStaff?: boolean;

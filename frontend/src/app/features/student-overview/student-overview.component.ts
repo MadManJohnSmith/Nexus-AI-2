@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, computed, inject, ChangeDetectionStrategy, input, effect } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, ChangeDetectionStrategy, input, effect, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
 import { StudentService } from '../../core/services/student.service';
 import { ThesisService } from '../../core/services/thesis.service';
 import { ReportingService } from '../../core/services/reporting.service';
@@ -37,6 +38,7 @@ import { ThesisProgressFormComponent } from '../thesis/thesis-progress-form/thes
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class StudentOverviewComponent implements OnInit {
+  private authService = inject(AuthService);
   private studentService = inject(StudentService);
   private thesisService = inject(ThesisService);
   private reportingService = inject(ReportingService);
@@ -52,7 +54,7 @@ export class StudentOverviewComponent implements OnInit {
   // State Signals
   readonly student = signal<StudentDetail | null>(null);
   readonly semesters = signal<Semester[]>([]);
-  readonly activeSemester = signal<number | 'ALL'>(3);
+  readonly activeSemester = signal<number | 'ALL'>(1);
   readonly tutoringSessions = signal<TutoringSession[]>([]);
   readonly agreements = signal<Agreement[]>([]);
   readonly thesisProgress = signal<ThesisProgress | null>(null);
@@ -71,28 +73,28 @@ export class StudentOverviewComponent implements OnInit {
   readonly currentSemesterData = computed(() => {
     const semNumber = this.activeSemester();
     if (semNumber === 'ALL') return null;
-    return this.semesters().find(s => s.number === semNumber) || null;
+    return this.semesters().find(s => s.numero === semNumber || s.number === semNumber) || null;
   });
 
   readonly filteredAgreements = computed(() => {
     const sem = this.activeSemester();
     const list = this.agreements();
     if (sem === 'ALL') return list;
-    return list.filter(a => a.semesterNumber === sem);
+    return list.filter(a => a.semesterNumber === sem || (a as any).semester_numero === sem);
   });
 
   readonly filteredTutoringSessions = computed(() => {
     const sem = this.activeSemester();
     const list = this.tutoringSessions();
     if (sem === 'ALL') return list;
-    return list.filter(t => t.semesterNumber === sem);
+    return list.filter(t => t.semesterNumber === sem || (t as any).semester_numero === sem || (t.semester as any)?.numero === sem);
   });
 
   readonly filteredTimelineNodes = computed(() => {
     const sem = this.activeSemester();
     const list = this.timelineNodes();
     if (sem === 'ALL') return list;
-    return list.filter(node => node.semesterNumber === sem);
+    return list.filter(node => node.semesterNumber === sem || (node as any).semester_numero === sem);
   });
 
   readonly studentIdNum = computed(() => {
@@ -103,39 +105,80 @@ export class StudentOverviewComponent implements OnInit {
   readonly activeSemesterNum = computed<number>(() => {
     const sem = this.activeSemester();
     if (sem === 'ALL') {
-      return this.student()?.currentSemester || 1;
+      return this.student()?.currentSemester || (this.student() as any)?.current_semester || 1;
     }
     return typeof sem === 'number' ? sem : 1;
   });
 
+  readonly activeSemesterId = computed<number>(() => {
+    const semNum = this.activeSemesterNum();
+    const st = this.student();
+    if (st && st.semesters && st.semesters.length > 0) {
+      const match = st.semesters.find(s => (s.numero || s.number) === semNum);
+      if (match) return match.id;
+      return st.semesters[0].id;
+    }
+    return semNum;
+  });
+
   // Summary counts for filtered active semester
   readonly pendingAgreementsCount = computed(() => {
-    return this.filteredAgreements().filter(a => a.status === 'PENDIENTE').length;
+    return this.filteredAgreements().filter(a => a.status === 'PENDIENTE' || a.estado === 'PENDIENTE').length;
   });
 
   readonly inProgressAgreementsCount = computed(() => {
-    return this.filteredAgreements().filter(a => a.status === 'EN_PROCESO').length;
+    return this.filteredAgreements().filter(a => a.status === 'EN_PROCESO' || a.estado === 'EN_PROCESO').length;
   });
 
   readonly overdueAgreementsCount = computed(() => {
-    return this.filteredAgreements().filter(a => a.status === 'VENCIDO').length;
+    return this.filteredAgreements().filter(a => a.status === 'VENCIDO' || a.estado === 'VENCIDO' || a.isOverdue || a.is_vencido).length;
   });
 
   readonly concludedAgreementsCount = computed(() => {
-    return this.filteredAgreements().filter(a => a.status === 'CONCLUIDO').length;
+    return this.filteredAgreements().filter(a => a.status === 'CONCLUIDO' || a.estado === 'CONCLUIDO').length;
   });
 
   // Total overdue count for global student trajectory
   readonly totalOverdueAgreementsCount = computed(() => {
-    return this.agreements().filter(a => a.status === 'VENCIDO').length;
+    return this.agreements().filter(a => a.status === 'VENCIDO' || a.estado === 'VENCIDO' || a.isOverdue || a.is_vencido).length;
+  });
+
+  // Dynamic breakdown of thesis progress components from backend
+  readonly thesisComponentsList = computed(() => {
+    const tp: any = this.thesisProgress();
+    const comps = tp?.componentes_json || tp?.components;
+    if (!comps) {
+      return [
+        { label: 'Protocolo de Investigación', value: 0 },
+        { label: 'Estado del Arte', value: 0 },
+        { label: 'Marco Teórico', value: 0 },
+        { label: 'Metodología', value: 0 },
+        { label: 'Análisis de Resultados', value: 0 },
+        { label: 'Redacción de Tesis', value: 0 }
+      ];
+    }
+    return [
+      { label: 'Protocolo de Investigación', value: comps.protocolo ?? 0 },
+      { label: 'Estado del Arte', value: comps.estadoArte ?? 0 },
+      { label: 'Marco Teórico', value: comps.marcoTeorico ?? 0 },
+      { label: 'Metodología', value: comps.metodologia ?? 0 },
+      { label: 'Análisis de Resultados', value: comps.analisis ?? 0 },
+      { label: 'Redacción de Tesis', value: comps.redaccion ?? 0 }
+    ];
   });
 
   constructor() {
     effect(() => {
       const period = this.periodService.activePeriod();
-      const currentSt = this.student();
-      // Si el usuario cambia el periodo y no estamos en una URL fija con ID específico, navegar o sincronizar con alumno de esa cohorte
+      // Read student untracked to avoid cyclic dependency when student() is updated
+      const currentSt = untracked(() => this.student());
       const routeParamId = this.route.snapshot.paramMap.get('id');
+      
+      // If student role, stay on their own record
+      if (this.authService.isStudent()) {
+        return;
+      }
+
       if (period !== 'TODOS' && (!routeParamId || routeParamId === '1')) {
         this.studentService.getStudents().subscribe(res => {
           const list = res.results || res;
@@ -152,6 +195,13 @@ export class StudentOverviewComponent implements OnInit {
 
   ngOnInit(): void {
     const routeId = this.id() || this.route.snapshot.paramMap.get('id');
+    const myStudentId = this.authService.getStudentId();
+
+    if (this.authService.isStudent() && myStudentId) {
+      this.loadStudentOverview(myStudentId.toString());
+      return;
+    }
+
     if (routeId && routeId !== '1') {
       this.loadStudentOverview(routeId);
     } else {
@@ -171,128 +221,20 @@ export class StudentOverviewComponent implements OnInit {
 
     this.studentService.getStudentDetail(studentId).subscribe(detail => {
       this.student.set(detail);
-      this.semesters.set(detail.semesters || []);
-      if (detail.currentSemester) {
-        this.activeSemester.set(detail.currentSemester);
-      }
+      const sems = detail.semesters || [];
+      this.semesters.set(sems);
+      
+      const activeSemObj = sems.find(s => s.is_active || s.isCurrent);
+      const curSemNum = detail.currentSemester || (detail as any).current_semester || (activeSemObj ? (activeSemObj.numero || activeSemObj.number) : (sems.length > 0 ? (sems[0].numero || sems[0].number) : 1));
+      this.activeSemester.set(curSemNum || 1);
 
       // Load related collections
       this.studentService.getTutoringSessions(studentId).subscribe(sessions => {
-        this.tutoringSessions.set(sessions);
+        this.tutoringSessions.set(sessions || []);
       });
 
       this.studentService.getAgreements(studentId).subscribe(agreements => {
-        // Enriched sample agreements if empty for realistic simulation
-        if (!agreements || agreements.length === 0) {
-          const enrichedAgreements: Agreement[] = [
-            {
-              id: 1,
-              student: Number(studentId),
-              studentId: Number(studentId),
-              studentName: detail.nombre_completo || detail.user?.fullName,
-              studentMatricula: detail.matricula,
-              tutoringSessionId: 101,
-              tutoringSessionTitle: 'Sesión Ordinaria - Revisión Capítulo 3',
-              semesterNumber: 3,
-              title: 'Completar benchmark comparativo de modelos BERT y RoBERTa',
-              descripcion: 'Completar benchmark comparativo de modelos BERT y RoBERTa',
-              description: 'Ejecutar las pruebas experimentales con los corpus de validación y tabular métricas F1 y precisión.',
-              responsable: 101,
-              responsable_nombre: detail.nombre_completo || 'María González López',
-              responsibleId: 101,
-              responsibleName: detail.nombre_completo || 'María González López',
-              responsibleRole: 'Doctorando',
-              fecha_limite: '2024-12-15',
-              dueDate: '2024-12-15',
-              estado: 'PENDIENTE',
-              status: 'PENDIENTE',
-              isOverdue: false,
-              createdAt: '2024-11-20T10:30:00Z',
-              updatedAt: '2024-11-20T10:30:00Z'
-            },
-            {
-              id: 2,
-              student: Number(studentId),
-              studentId: Number(studentId),
-              studentName: detail.nombre_completo || detail.user?.fullName,
-              studentMatricula: detail.matricula,
-              tutoringSessionId: 101,
-              tutoringSessionTitle: 'Sesión Ordinaria - Revisión Capítulo 3',
-              semesterNumber: 3,
-              title: 'Revisión y retroalimentación del borrador del Capítulo 3',
-              descripcion: 'Revisión y retroalimentación del borrador del Capítulo 3',
-              description: 'El comité asesor revisará la sección de metodología experimental y emitirá sugerencias de ajuste.',
-              responsable: 2,
-              responsable_nombre: 'Dr. Roberto Mendoza',
-              responsibleId: 2,
-              responsibleName: 'Dr. Roberto Mendoza',
-              responsibleRole: 'Asesor Principal',
-              fecha_limite: '2024-12-20',
-              dueDate: '2024-12-20',
-              estado: 'EN_PROCESO',
-              status: 'EN_PROCESO',
-              isOverdue: false,
-              createdAt: '2024-11-20T10:30:00Z',
-              updatedAt: '2024-11-25T14:00:00Z'
-            },
-            {
-              id: 3,
-              student: Number(studentId),
-              studentId: Number(studentId),
-              studentName: detail.nombre_completo || detail.user?.fullName,
-              studentMatricula: detail.matricula,
-              tutoringSessionId: 98,
-              tutoringSessionTitle: 'Revisión Extraordinaria de Protocolo',
-              semesterNumber: 3,
-              title: 'Entrega de constancia de seminario de investigación I',
-              descripcion: 'Entrega de constancia de seminario de investigación I',
-              description: 'Cargar el comprobante de asistencia y ponencia aprobada en el seminario departamental.',
-              responsable: 101,
-              responsable_nombre: detail.nombre_completo || 'María González López',
-              responsibleId: 101,
-              responsibleName: detail.nombre_completo || 'María González López',
-              responsibleRole: 'Doctorando',
-              fecha_limite: '2024-10-30',
-              dueDate: '2024-10-30',
-              estado: 'VENCIDO',
-              status: 'VENCIDO',
-              isOverdue: true,
-              createdAt: '2024-10-01T09:00:00Z',
-              updatedAt: '2024-11-01T08:00:00Z'
-            },
-            {
-              id: 4,
-              student: Number(studentId),
-              studentId: Number(studentId),
-              studentName: detail.nombre_completo || detail.user?.fullName,
-              studentMatricula: detail.matricula,
-              tutoringSessionId: 85,
-              tutoringSessionTitle: 'Coloquio Semestral de Avances',
-              semesterNumber: 2,
-              title: 'Envío de artículo científico a revista Q2 IEEE',
-              descripcion: 'Envío de artículo científico a revista Q2 IEEE',
-              description: 'Finalizar formato de doble columna y anexar cartas de coautores para someter al journal.',
-              responsable: 101,
-              responsable_nombre: detail.nombre_completo || 'María González López',
-              responsibleId: 101,
-              responsibleName: detail.nombre_completo || 'María González López',
-              responsibleRole: 'Doctorando',
-              fecha_limite: '2024-05-15',
-              dueDate: '2024-05-15',
-              estado: 'CONCLUIDO',
-              status: 'CONCLUIDO',
-              completionDate: '2024-05-12',
-              fecha_conclusion: '2024-05-12',
-              resolutionNotes: 'Artículo sometido exitosamente con folio IEEE-NLP-2024-889.',
-              isOverdue: false,
-              createdAt: '2024-04-10T11:00:00Z',
-              updatedAt: '2024-05-12T16:30:00Z'
-            }
-          ];
-          this.agreements.set(enrichedAgreements);
-        } else {
-          this.agreements.set(agreements);
-        }
+        this.agreements.set(agreements || []);
       });
 
       this.studentService.getThesisProgress(studentId).subscribe(progress => {
@@ -300,7 +242,7 @@ export class StudentOverviewComponent implements OnInit {
       });
 
       this.studentService.getStudentTimeline(studentId).subscribe(nodes => {
-        this.timelineNodes.set(nodes);
+        this.timelineNodes.set(nodes || []);
         this.isLoading.set(false);
       });
     });

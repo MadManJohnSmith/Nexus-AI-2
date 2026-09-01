@@ -231,44 +231,22 @@ export class LoginComponent {
   }
 
   loginAs(type: string): void {
-    if (type === 'coordinador') {
-      this.authService.setCurrentUserForDev({
-        id: 1,
-        username: 'coordinador.posgrado',
-        email: 'coordinador@posgrado.edu',
-        firstName: 'Dr. Alejandro',
-        lastName: 'Vázquez Morales',
-        fullName: 'Dr. Alejandro Vázquez Morales',
-        role: 'COORDINADOR',
-        isActive: true,
-        institution: 'Facultad de Ingeniería'
-      });
-      this.router.navigate(['/students/1']);
-    } else if (type === 'asesor') {
-      this.authService.setCurrentUserForDev({
-        id: 201,
-        username: 'dr.valenzuela',
-        email: 'r.valenzuela@posgrado.edu',
-        firstName: 'Roberto',
-        lastName: 'Valenzuela Silva',
-        fullName: 'Dr. Roberto Valenzuela Silva',
-        role: 'ASESOR',
-        isActive: true,
-        institution: 'Facultad de Ingeniería'
-      });
-      this.router.navigate(['/students/1']);
-    } else {
-      this.authService.setCurrentUserForDev({
-        id: 101,
-        username: 'maria.gonzalez',
-        email: 'maria.gonzalez@posgrado.edu',
-        firstName: 'María',
-        lastName: 'González López',
-        fullName: 'María González López',
-        role: 'ESTUDIANTE',
-        isActive: true
-      });
-      this.router.navigate(['/students/1']);
-    }
+    const roleMap: Record<string, 'COORDINADOR' | 'ASESOR' | 'ESTUDIANTE'> = {
+      'coordinador': 'COORDINADOR',
+      'asesor': 'ASESOR',
+      'estudiante': 'ESTUDIANTE'
+    };
+    const targetRole = roleMap[type] || 'COORDINADOR';
+
+    this.isLoading.set(true);
+    this.authService.loginAsDemo(targetRole).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        this.router.navigate(['/dashboard']);
+      },
+      error: () => {
+        this.isLoading.set(false);
+      }
+    });
   }
 }

@@ -117,12 +117,10 @@ export class AgreementService {
         this.loading.set(false);
       }),
       catchError(() => {
-        const p = params as any;
-        const mock = this.getMockAgreements(p?.studentId || p?.student, p?.status || p?.estado);
-        this.agreements.set(mock);
-        this.totalCount.set(mock.length);
+        this.agreements.set([]);
+        this.totalCount.set(0);
         this.loading.set(false);
-        return of(mock);
+        return of([]);
       })
     );
   }
@@ -139,12 +137,9 @@ export class AgreementService {
         this.selectedAgreement.set(agr);
         this.loading.set(false);
       }),
-      catchError(() => {
-        const mockList = this.getMockAgreements();
-        const found = mockList.find(a => a.id === Number(id)) || mockList[0];
-        this.selectedAgreement.set(found);
+      catchError(err => {
         this.loading.set(false);
-        return of(found);
+        throw err;
       })
     );
   }
@@ -169,16 +164,9 @@ export class AgreementService {
         this.loading.set(false);
         this.agreements.update(list => [created, ...list.filter(a => a.id !== created.id)]);
       }),
-      catchError(() => {
+      catchError(err => {
         this.loading.set(false);
-        const fallbackAgr = this.normalizeAgreement({
-          id: Date.now(),
-          ...payload,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-        this.agreements.update(list => [fallbackAgr, ...list]);
-        return of(fallbackAgr);
+        throw err;
       })
     );
   }
@@ -212,188 +200,16 @@ export class AgreementService {
         this.loading.set(false);
         this.agreements.update(list => list.map(a => a.id === Number(id) ? updated : a));
       }),
-      catchError(() => {
+      catchError(err => {
         this.loading.set(false);
-        let updatedItem: Agreement | null = null;
-        this.agreements.update(list => list.map(a => {
-          if (a.id === Number(id)) {
-            updatedItem = {
-              ...a,
-              estado: payload.estado,
-              status: payload.estado,
-              is_vencido: payload.estado === 'VENCIDO',
-              isOverdue: payload.estado === 'VENCIDO',
-              fecha_conclusion: payload.estado === 'CONCLUIDO' ? new Date().toISOString().split('T')[0] : a.fecha_conclusion,
-              updated_at: new Date().toISOString()
-            };
-            return updatedItem;
-          }
-          return a;
-        }));
-        return of(updatedItem || this.getMockAgreements()[0]);
+        throw err;
       })
     );
   }
 
   getAuditLogs(id: number | string): Observable<AgreementAuditLog[]> {
     return this.http.get<AgreementAuditLog[]>(`${this.baseUrl}/${id}/audit-logs/`).pipe(
-      catchError(() => of(this.getMockAuditLogs(Number(id))))
+      catchError(() => of([]))
     );
-  }
-
-  // --- MOCK DATA GENERATOR ---
-  private getMockAgreements(studentId?: number | string, status?: AgreementStatus): Agreement[] {
-    const allAgreements: Agreement[] = [
-      {
-        id: 1,
-        student: 1,
-        studentId: 1,
-        student_nombre: 'María González López',
-        studentName: 'María González López',
-        student_matricula: 'DOC-2023-042',
-        studentMatricula: 'DOC-2023-042',
-        session: 101,
-        tutoringSessionId: 101,
-        descripcion: 'Completar benchmark comparativo de modelos BERT y RoBERTa',
-        description: 'Completar benchmark comparativo de modelos BERT y RoBERTa',
-        responsable: 101,
-        responsibleId: 101,
-        responsable_nombre: 'María González López',
-        responsibleName: 'María González López',
-        fecha_limite: '2025-04-15',
-        dueDate: '2025-04-15',
-        estado: 'PENDIENTE',
-        status: 'PENDIENTE',
-        is_vencido: false,
-        isOverdue: false,
-        created_at: '2025-02-20T10:30:00Z',
-        createdAt: '2025-02-20T10:30:00Z',
-        updated_at: '2025-02-20T10:30:00Z',
-        updatedAt: '2025-02-20T10:30:00Z'
-      },
-      {
-        id: 2,
-        student: 1,
-        studentId: 1,
-        student_nombre: 'María González López',
-        studentName: 'María González López',
-        student_matricula: 'DOC-2023-042',
-        studentMatricula: 'DOC-2023-042',
-        session: 101,
-        tutoringSessionId: 101,
-        descripcion: 'Revisión y retroalimentación del borrador del Capítulo 3',
-        description: 'Revisión y retroalimentación del borrador del Capítulo 3',
-        responsable: 2,
-        responsibleId: 2,
-        responsable_nombre: 'Dr. Roberto Mendoza',
-        responsibleName: 'Dr. Roberto Mendoza',
-        fecha_limite: '2025-04-20',
-        dueDate: '2025-04-20',
-        estado: 'EN_PROCESO',
-        status: 'EN_PROCESO',
-        is_vencido: false,
-        isOverdue: false,
-        created_at: '2025-02-20T10:30:00Z',
-        createdAt: '2025-02-20T10:30:00Z',
-        updated_at: '2025-02-25T14:00:00Z',
-        updatedAt: '2025-02-25T14:00:00Z'
-      },
-      {
-        id: 3,
-        student: 1,
-        studentId: 1,
-        student_nombre: 'María González López',
-        studentName: 'María González López',
-        student_matricula: 'DOC-2023-042',
-        studentMatricula: 'DOC-2023-042',
-        session: 98,
-        tutoringSessionId: 98,
-        descripcion: 'Entrega de constancia de seminario de investigación I',
-        description: 'Entrega de constancia de seminario de investigación I',
-        responsable: 101,
-        responsibleId: 101,
-        responsable_nombre: 'María González López',
-        responsibleName: 'María González López',
-        fecha_limite: '2025-01-30',
-        dueDate: '2025-01-30',
-        estado: 'VENCIDO',
-        status: 'VENCIDO',
-        is_vencido: true,
-        isOverdue: true,
-        created_at: '2025-01-01T09:00:00Z',
-        createdAt: '2025-01-01T09:00:00Z',
-        updated_at: '2025-02-01T08:00:00Z',
-        updatedAt: '2025-02-01T08:00:00Z'
-      },
-      {
-        id: 4,
-        student: 1,
-        studentId: 1,
-        student_nombre: 'María González López',
-        studentName: 'María González López',
-        student_matricula: 'DOC-2023-042',
-        studentMatricula: 'DOC-2023-042',
-        session: 85,
-        tutoringSessionId: 85,
-        descripcion: 'Envío de artículo científico a revista Q2 IEEE',
-        description: 'Envío de artículo científico a revista Q2 IEEE',
-        responsable: 101,
-        responsibleId: 101,
-        responsable_nombre: 'María González López',
-        responsibleName: 'María González López',
-        fecha_limite: '2024-12-15',
-        dueDate: '2024-12-15',
-        estado: 'CONCLUIDO',
-        status: 'CONCLUIDO',
-        fecha_conclusion: '2024-12-12',
-        completionDate: '2024-12-12',
-        is_vencido: false,
-        isOverdue: false,
-        created_at: '2024-11-10T11:00:00Z',
-        createdAt: '2024-11-10T11:00:00Z',
-        updated_at: '2024-12-12T16:30:00Z',
-        updatedAt: '2024-12-12T16:30:00Z'
-      }
-    ];
-
-    let filtered = allAgreements;
-    if (studentId) {
-      filtered = filtered.filter(a => a.student === Number(studentId) || a.studentId === Number(studentId));
-    }
-    if (status && (status as any) !== 'TODOS') {
-      filtered = filtered.filter(a => a.estado === status || a.status === status);
-    }
-    return filtered;
-  }
-
-  private getMockAuditLogs(agreementId: number): AgreementAuditLog[] {
-    return [
-      {
-        id: 1,
-        agreement: agreementId,
-        estado_anterior: 'PENDIENTE',
-        estado_nuevo: 'EN_PROCESO',
-        comentario: 'Inicio de la fase experimental y recolección de datos.',
-        fecha_cambio: '2025-02-25T14:00:00Z',
-        agreementId,
-        previousStatus: 'PENDIENTE',
-        newStatus: 'EN_PROCESO',
-        notes: 'Inicio de la fase experimental y recolección de datos.',
-        timestamp: '2025-02-25T14:00:00Z'
-      },
-      {
-        id: 2,
-        agreement: agreementId,
-        estado_anterior: 'EN_PROCESO',
-        estado_nuevo: 'CONCLUIDO',
-        comentario: 'Entrega formal de resultados validada por el asesor.',
-        fecha_cambio: '2025-03-01T11:20:00Z',
-        agreementId,
-        previousStatus: 'EN_PROCESO',
-        newStatus: 'CONCLUIDO',
-        notes: 'Entrega formal de resultados validada por el asesor.',
-        timestamp: '2025-03-01T11:20:00Z'
-      }
-    ];
   }
 }

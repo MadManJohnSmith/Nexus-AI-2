@@ -10,6 +10,8 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { TutoringService } from '../../../core/services/tutoring.service';
+import { CommitteeService } from '../../../core/services/committee.service';
+import { AuthService } from '../../../core/services/auth.service';
 import {
   TutoringModality,
   TutoringSession,
@@ -41,13 +43,15 @@ export interface ObservationItem {
 export class TutoringModalComponent {
   private fb = inject(FormBuilder);
   private tutoringService = inject(TutoringService);
+  private committeeService = inject(CommitteeService);
+  private authService = inject(AuthService);
 
   // Inputs
   readonly isOpen = input<boolean>(false);
-  readonly studentId = input<number | undefined>(1);
+  readonly studentId = input<number | undefined>(undefined);
   readonly semesterId = input<number | undefined>(undefined);
-  readonly studentName = input<string | undefined>('María González López');
-  readonly semesterNumber = input<number | undefined>(3);
+  readonly studentName = input<string | undefined>(undefined);
+  readonly semesterNumber = input<number | undefined>(undefined);
 
   // Outputs (both close and closed supported for flexibility)
   readonly close = output<void>();
@@ -59,42 +63,20 @@ export class TutoringModalComponent {
   readonly errorMessage = signal<string | null>(null);
 
   // Participants signal list
-  readonly participantsList = signal<ParticipantItem[]>([
-    {
-      user: 1,
-      userName: 'Estudiante (Doctorando)',
-      rol_en_sesion: 'ESTUDIANTE',
-      asistencia: true,
-      notas: ''
-    },
-    {
-      user: 2,
-      userName: 'Dr. Roberto Mendoza',
-      rol_en_sesion: 'ASESOR_PRINCIPAL',
-      asistencia: true,
-      notas: ''
-    },
-    {
-      user: 3,
-      userName: 'Dra. Carmen Silva',
-      rol_en_sesion: 'COASESOR',
-      asistencia: true,
-      notas: ''
-    }
-  ]);
+  readonly participantsList = signal<ParticipantItem[]>([]);
 
   // Observations dynamic signal list
   readonly observationsList = signal<ObservationItem[]>([
     {
       titulo_tema: 'Revisión Metodológica y Avance de Tesis',
-      contenido: 'Revisión detallada de los resultados experimentales y validación de hipótesis.'
+      contenido: ''
     }
   ]);
 
   // Form Group
   readonly form = this.fb.group({
     fecha_sesion: [new Date().toISOString().split('T')[0], [Validators.required]],
-    semester: [3, [Validators.required, Validators.min(1), Validators.max(6)]],
+    semester: [1, [Validators.required, Validators.min(1), Validators.max(6)]],
     modalidad: ['PRESENCIAL' as TutoringModality, [Validators.required]],
     resumen: ['', [Validators.required, Validators.minLength(10)]],
     proxima_reunion_fecha: [''],
@@ -104,8 +86,9 @@ export class TutoringModalComponent {
   constructor() {
     effect(() => {
       if (this.isOpen()) {
-        const sem = this.semesterNumber() || this.semesterId() || 3;
-        const currentStudentName = this.studentName() || 'Estudiante';
+        const sem = this.semesterNumber() || this.semesterId() || 1;
+        const currentStudentName = this.studentName() || 'Doctorando';
+        const stId = this.studentId();
 
         this.form.patchValue({
           fecha_sesion: new Date().toISOString().split('T')[0],
@@ -116,35 +99,60 @@ export class TutoringModalComponent {
           proxima_reunion_notas: ''
         });
 
-        // Initialize default participants
-        this.participantsList.set([
+        // Initialize default participants with student
+        const initialParticipants: ParticipantItem[] = [
           {
-            user: this.studentId() || 1,
+            user: (stId ? Number(stId) : 1),
             userName: `${currentStudentName} (Doctorando)`,
             rol_en_sesion: 'ESTUDIANTE',
             asistencia: true,
             notas: ''
-          },
-          {
-            user: 2,
-            userName: 'Dr. Roberto Mendoza (Director)',
-            rol_en_sesion: 'ASESOR_PRINCIPAL',
-            asistencia: true,
-            notas: ''
-          },
-          {
-            user: 3,
-            userName: 'Dra. Carmen Silva (Coasesor)',
-            rol_en_sesion: 'COASESOR',
-            asistencia: true,
-            notas: ''
           }
-        ]);
+        ];
+
+        if (stId) {
+          this.committeeService.getCommittee(Number(stId)).subscribe({
+            next: (members) => {
+              if (members && members.length > 0) {
+                const committeeParticipants: ParticipantItem[] = members.map(m => {
+                  const u = m.user_detail || m.userDetail;
+                  const name = u ? `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email : '';
+                  return {
+                    user: typeof m.user === 'number' ? m.user : (u?.id || m.id),
+                    userName: name || `Miembro (${m.rol_comite_display || m.rol_comite})`,
+                    rol_en_sesion: m.rol_comite || 'ASESOR_PRINCIPAL',
+                    asistencia: true,
+                    notas: ''
+                  };
+                });
+                this.participantsList.set([...initialParticipants, ...committeeParticipants]);
+              } else {
+                // Fallback to current authenticated academic user
+                const currUser = this.authService.currentUser();
+                if (currUser && currUser.role !== 'ESTUDIANTE') {
+                  initialParticipants.push({
+                    user: currUser.id,
+                    userName: `${currUser.full_name || currUser.email} (${currUser.role})`,
+                    rol_en_sesion: currUser.role === 'ASESOR' ? 'ASESOR_PRINCIPAL' : 'COORDINADOR',
+                    asistencia: true,
+                    notas: ''
+                  });
+                }
+                this.participantsList.set(initialParticipants);
+              }
+            },
+            error: () => {
+              this.participantsList.set(initialParticipants);
+            }
+          });
+        } else {
+          this.participantsList.set(initialParticipants);
+        }
 
         // Initialize default observation topic
         this.observationsList.set([
           {
-            titulo_tema: 'Avance de Capítulo y Metodología',
+            titulo_tema: 'Revisión Metodológica y Avance de Tesis',
             contenido: ''
           }
         ]);

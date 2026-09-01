@@ -46,61 +46,65 @@ export class AppShellComponent implements OnInit {
 
   // Dynamic breadcrumbs
   readonly breadcrumbs = signal<BreadcrumbItem[]>([
-    { label: 'Inicio', url: '/' },
-    { label: 'Expediente', url: '/students/1' }
+    { label: 'Inicio', url: '/' }
   ]);
 
-  // Navigation catalog
-  readonly navItems: NavItem[] = [
-    {
-      label: 'Dashboard',
-      route: '/dashboard',
-      icon: 'dashboard',
-      roles: ['ADMIN', 'COORDINADOR']
-    },
-    {
-      label: 'Estudiantes',
-      route: '/students',
-      icon: 'users',
-      exact: true,
-      roles: ['ADMIN', 'COORDINADOR', 'ASESOR', 'COASESOR', 'COMITE']
-    },
-    {
-      label: 'Expediente',
-      route: '/students/1',
-      icon: 'folder',
-      roles: ['ADMIN', 'COORDINADOR', 'ASESOR', 'COASESOR', 'COMITE', 'ESTUDIANTE']
-    },
-    {
+  // Filtered navigation items based on current role and dynamic student id
+  readonly filteredNavItems = computed<NavItem[]>(() => {
+    const role = this.authService.currentUser()?.role || 'COORDINADOR';
+    const studentId = this.authService.getStudentId() || 1;
+    const items: NavItem[] = [];
+
+    if (role === 'ADMIN' || role === 'COORDINADOR') {
+      items.push({
+        label: 'Dashboard',
+        route: '/dashboard',
+        icon: 'dashboard'
+      });
+    }
+
+    if (role === 'ADMIN' || role === 'COORDINADOR' || role === 'ASESOR' || role === 'COASESOR' || role === 'COMITE') {
+      items.push({
+        label: 'Estudiantes',
+        route: '/students',
+        icon: 'users',
+        exact: true
+      });
+    }
+
+    items.push({
+      label: role === 'ESTUDIANTE' ? 'Mi Expediente' : 'Expediente',
+      route: `/students/${studentId}`,
+      icon: 'folder'
+    });
+
+    items.push({
       label: 'Tutorías',
-      route: '/tutoring',
-      icon: 'book',
-      roles: ['ADMIN', 'COORDINADOR', 'ASESOR', 'COASESOR', 'COMITE', 'ESTUDIANTE']
-    },
-    {
+      route: role === 'ESTUDIANTE' ? `/students/${studentId}` : '/tutoring',
+      icon: 'book'
+    });
+
+    items.push({
       label: 'Acuerdos',
       route: '/agreements',
-      icon: 'check-square',
-      roles: ['ADMIN', 'COORDINADOR', 'ASESOR', 'COASESOR', 'COMITE', 'ESTUDIANTE']
-    },
-    {
+      icon: 'check-square'
+    });
+
+    items.push({
       label: 'Producción',
       route: '/academic-output',
-      icon: 'award',
-      roles: ['ADMIN', 'COORDINADOR', 'ASESOR', 'COASESOR', 'ESTUDIANTE']
-    },
-    {
-      label: 'Reportes',
-      route: '/reports',
-      icon: 'file-text',
-      roles: ['ADMIN', 'COORDINADOR', 'ASESOR']
-    }
-  ];
+      icon: 'award'
+    });
 
-  // Filtered navigation items based on current role
-  readonly filteredNavItems = computed(() => {
-    const role = this.authService.currentUser()?.role || 'COORDINADOR';
-    return this.navItems.filter(item => !item.roles || item.roles.includes(role));
+    if (role === 'ADMIN' || role === 'COORDINADOR' || role === 'ASESOR') {
+      items.push({
+        label: 'Reportes',
+        route: '/reports',
+        icon: 'file-text'
+      });
+    }
+
+    return items;
   });
 
   readonly userRolePillType = computed(() => {
@@ -120,21 +124,6 @@ export class AppShellComponent implements OnInit {
   });
 
   constructor() {
-    // If no user in authService (e.g. initial demo load), set default demo user
-    if (!this.authService.currentUser()) {
-      this.authService.setCurrentUserForDev({
-        id: 1,
-        username: 'coordinador.posgrado',
-        email: 'coordinador@posgrado.edu',
-        firstName: 'Dr. Alejandro',
-        lastName: 'Vázquez Morales',
-        fullName: 'Dr. Alejandro Vázquez Morales',
-        role: 'COORDINADOR',
-        isActive: true,
-        institution: 'Facultad de Ingeniería'
-      });
-    }
-
     this.updateBreadcrumbs(this.router.url);
 
     this.router.events.pipe(

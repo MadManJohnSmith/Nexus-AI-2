@@ -41,19 +41,10 @@ export class AgreementsListComponent implements OnInit {
   readonly drawerMode = signal<'CREATE' | 'STATUS_UPDATE'>('CREATE');
   readonly selectedAgreement = signal<Agreement | null>(null);
 
-  // Filtered list computed signal
-  readonly filteredAgreements = computed(() => {
+  // Filtered base agreements according to selected academic period
+  readonly periodAgreements = computed(() => {
     let list = this.rawAgreements();
-    const status = this.selectedStatusFilter();
-    const query = this.searchTerm().trim().toLowerCase();
-    const sId = this.selectedStudentId();
-    const sem = this.selectedSemester();
     const period = this.periodService.activePeriod();
-
-    if (status !== 'TODOS') {
-      list = list.filter(a => a.status === status);
-    }
-
     if (period !== 'TODOS') {
       const cohortStudents = this.studentsList().filter(
         s => (s.cohorte === period || s.cohort === period)
@@ -62,13 +53,27 @@ export class AgreementsListComponent implements OnInit {
         list = list.filter(a => cohortStudents.includes(a.studentId || a.student || 0));
       }
     }
+    return list;
+  });
+
+  // Filtered list computed signal
+  readonly filteredAgreements = computed(() => {
+    let list = this.periodAgreements();
+    const status = this.selectedStatusFilter();
+    const query = this.searchTerm().trim().toLowerCase();
+    const sId = this.selectedStudentId();
+    const sem = this.selectedSemester();
+
+    if (status !== 'TODOS') {
+      list = list.filter(a => a.status === status || a.estado === status);
+    }
 
     if (sId !== 'ALL') {
-      list = list.filter(a => a.studentId === Number(sId));
+      list = list.filter(a => (a.studentId === Number(sId) || a.student === Number(sId)));
     }
 
     if (sem !== 'ALL') {
-      list = list.filter(a => a.semesterNumber === Number(sem));
+      list = list.filter(a => a.semesterNumber === Number(sem) || (a as any).semester_numero === Number(sem));
     }
 
     if (query) {
@@ -85,11 +90,28 @@ export class AgreementsListComponent implements OnInit {
   });
 
   // Summary Metrics Signals
-  readonly totalCount = computed(() => this.rawAgreements().length);
-  readonly pendingCount = computed(() => this.rawAgreements().filter(a => a.status === 'PENDIENTE').length);
-  readonly inProgressCount = computed(() => this.rawAgreements().filter(a => a.status === 'EN_PROCESO').length);
-  readonly concludedCount = computed(() => this.rawAgreements().filter(a => a.status === 'CONCLUIDO').length);
-  readonly overdueCount = computed(() => this.rawAgreements().filter(a => a.status === 'VENCIDO').length);
+  readonly totalCount = computed(() => this.periodAgreements().length);
+  readonly pendingCount = computed(() => this.periodAgreements().filter(a => a.status === 'PENDIENTE' || a.estado === 'PENDIENTE').length);
+  readonly inProgressCount = computed(() => this.periodAgreements().filter(a => a.status === 'EN_PROCESO' || a.estado === 'EN_PROCESO').length);
+  readonly concludedCount = computed(() => this.periodAgreements().filter(a => a.status === 'CONCLUIDO' || a.estado === 'CONCLUIDO').length);
+  readonly overdueCount = computed(() => this.periodAgreements().filter(a => a.status === 'VENCIDO' || a.estado === 'VENCIDO' || a.isOverdue || a.is_vencido).length);
+
+  readonly pendingPercentage = computed(() => {
+    const total = this.totalCount();
+    return total > 0 ? Math.round((this.pendingCount() / total) * 100) : 0;
+  });
+  readonly inProgressPercentage = computed(() => {
+    const total = this.totalCount();
+    return total > 0 ? Math.round((this.inProgressCount() / total) * 100) : 0;
+  });
+  readonly concludedPercentage = computed(() => {
+    const total = this.totalCount();
+    return total > 0 ? Math.round((this.concludedCount() / total) * 100) : 0;
+  });
+  readonly overduePercentage = computed(() => {
+    const total = this.totalCount();
+    return total > 0 ? Math.round((this.overdueCount() / total) * 100) : 0;
+  });
 
   // Active filter chips detection
   readonly activeFiltersCount = computed(() => {

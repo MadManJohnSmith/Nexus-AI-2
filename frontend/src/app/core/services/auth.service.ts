@@ -56,6 +56,22 @@ export class AuthService {
     );
   }
 
+  /**
+   * Fast auto-login or switch to a demo role with a real backend JWT token.
+   */
+  loginAsDemo(role: 'COORDINADOR' | 'ASESOR' | 'ESTUDIANTE' = 'COORDINADOR'): Observable<AuthResponse> {
+    let email = 'admin@nexus.edu';
+    let password = 'Admin1234!';
+    if (role === 'ASESOR') {
+      email = 'roberto.hernandez@nexus.edu';
+      password = 'Asesor1234!';
+    } else if (role === 'ESTUDIANTE') {
+      email = 'carlos.vargas@nexus.edu';
+      password = 'Estudiante1234!';
+    }
+    return this.login({ email, password });
+  }
+
   refreshToken(): Observable<TokenRefreshResponse> {
     const refresh = this.getStoredRefreshToken();
     if (!refresh) {
@@ -118,6 +134,11 @@ export class AuthService {
     return this.currentUser()?.role === 'ESTUDIANTE';
   }
 
+  getStudentId(): number | null {
+    const u = this.currentUser();
+    return u?.student_id || u?.studentId || null;
+  }
+
   private saveAuthData(authData: AuthResponse): void {
     localStorage.setItem(this.TOKEN_KEY, authData.access);
     localStorage.setItem(this.REFRESH_KEY, authData.refresh);
@@ -135,7 +156,12 @@ export class AuthService {
   }
 
   private getStoredToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
+    const token = localStorage.getItem(this.TOKEN_KEY);
+    // If token is missing, invalid or legacy mock token, clear and return null
+    if (!token || token === 'mock-dev-token' || token.trim() === '') {
+      return null;
+    }
+    return token;
   }
 
   private getStoredRefreshToken(): string | null {

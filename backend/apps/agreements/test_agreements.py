@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from django.utils import timezone
+from django.utils import timezone
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 from rest_framework import status
@@ -156,7 +157,7 @@ class AgreementModelAndAPITests(APITestCase):
         self.assertEqual(resp2.status_code, status.HTTP_200_OK)
         agreement.refresh_from_db()
         self.assertEqual(agreement.estado, 'CONCLUIDO')
-        self.assertEqual(agreement.fecha_conclusion, date.today())
+        self.assertEqual(agreement.fecha_conclusion, timezone.now().date())
 
         # 3. Verificar historial de auditoría
         audit_url = f'/api/v2/agreements/{agreement.id}/audit-logs/'

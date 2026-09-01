@@ -75,6 +75,8 @@ class TutoringSessionSerializer(serializers.ModelSerializer):
     student_nombre = serializers.CharField(source='student.nombre_completo', read_only=True)
     student_matricula = serializers.CharField(source='student.matricula', read_only=True)
     semester_numero = serializers.IntegerField(source='semester.numero', read_only=True)
+    semesterNumber = serializers.IntegerField(source='semester.numero', read_only=True)
+    semester_id = serializers.IntegerField(source='semester.id', read_only=True)
     modalidad_display = serializers.CharField(source='get_modalidad_display', read_only=True)
     created_by_nombre = serializers.SerializerMethodField()
     participants = TutoringParticipantSerializer(many=True, read_only=True)
@@ -91,6 +93,8 @@ class TutoringSessionSerializer(serializers.ModelSerializer):
             'student_matricula',
             'semester',
             'semester_numero',
+            'semesterNumber',
+            'semester_id',
             'fecha_sesion',
             'modalidad',
             'modalidad_display',
@@ -111,6 +115,8 @@ class TutoringSessionSerializer(serializers.ModelSerializer):
             'student_nombre',
             'student_matricula',
             'semester_numero',
+            'semesterNumber',
+            'semester_id',
             'modalidad_display',
             'created_by_nombre',
             'participants',
@@ -152,6 +158,23 @@ class TutoringSessionCreateSerializer(serializers.ModelSerializer):
             'observations',
         ]
         read_only_fields = ['id']
+
+    def to_internal_value(self, data):
+        data = data.copy() if hasattr(data, 'copy') else dict(data)
+        student_val = data.get('student')
+        sem_val = data.get('semester')
+        
+        if student_val and sem_val is not None:
+            try:
+                if not Semester.objects.filter(pk=sem_val).exists():
+                    st = Student.objects.filter(pk=student_val).first()
+                    if st:
+                        match_sem = st.semesters.filter(numero=sem_val).first()
+                        if match_sem:
+                            data['semester'] = match_sem.pk
+            except Exception:
+                pass
+        return super().to_internal_value(data)
 
     def validate(self, attrs):
         student = attrs.get('student')

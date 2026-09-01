@@ -43,18 +43,16 @@ export class StudentService {
         this.totalCount.set(res.count || 0);
         this.loading.set(false);
       }),
-      catchError(() => {
-        const mock = this.getMockStudents();
-        const paginatedMock: PaginatedResponse<Student> = {
-          count: mock.length,
+      catchError(err => {
+        this.students.set([]);
+        this.totalCount.set(0);
+        this.loading.set(false);
+        return of({
+          count: 0,
           next: null,
           previous: null,
-          results: mock
-        };
-        this.students.set(mock);
-        this.totalCount.set(mock.length);
-        this.loading.set(false);
-        return of(paginatedMock);
+          results: []
+        });
       })
     );
   }
@@ -66,20 +64,17 @@ export class StudentService {
         this.selectedStudent.set(student);
         this.loading.set(false);
       }),
-      catchError(() => {
-        const mock = this.getMockStudentDetail(Number(id) || 1);
-        this.selectedStudent.set(mock);
+      catchError(err => {
         this.loading.set(false);
-        return of(mock);
+        throw err;
       })
     );
   }
 
   getStudentById(id: number | string): Observable<Student> {
     return this.http.get<Student>(`${this.baseUrl}/students/${id}/`).pipe(
-      catchError(() => {
-        const mock = this.getMockStudents().find(s => s.id === Number(id)) || this.getMockStudents()[0];
-        return of(mock);
+      catchError(err => {
+        throw err;
       })
     );
   }
@@ -130,7 +125,7 @@ export class StudentService {
 
   getStudentSemesters(studentId: number | string): Observable<Semester[]> {
     return this.http.get<Semester[]>(`${this.baseUrl}/students/${studentId}/semesters/`).pipe(
-      catchError(() => of(this.getMockSemesters()))
+      catchError(() => of([]))
     );
   }
 
@@ -149,7 +144,7 @@ export class StudentService {
     }
     return this.http.get<{ results: TutoringSession[] } | TutoringSession[]>(url).pipe(
       map(res => Array.isArray(res) ? res : res.results || []),
-      catchError(() => of(this.getMockTutoringSessions(Number(studentId), semester)))
+      catchError(() => of([]))
     );
   }
 
@@ -160,11 +155,11 @@ export class StudentService {
     }
     return this.http.get<{ results: Agreement[] } | Agreement[]>(url).pipe(
       map(res => Array.isArray(res) ? res : res.results || []),
-      catchError(() => of(this.getMockAgreements(Number(studentId), semester)))
+      catchError(() => of([]))
     );
   }
 
-  getThesisProgress(studentId: number | string, semester?: number): Observable<ThesisProgress> {
+  getThesisProgress(studentId: number | string, semester?: number): Observable<ThesisProgress | null> {
     const url = `${this.baseUrl}/thesis/?student=${studentId}${semester ? `&semester=${semester}` : ''}`;
     return this.http.get<any>(url).pipe(
       map(res => {
@@ -174,137 +169,16 @@ export class StudentService {
         if (Array.isArray(res) && res.length > 0) {
           return res[0];
         }
-        return res && !Array.isArray(res) && !res.results ? res : this.getMockThesisProgress(Number(studentId), semester || 3);
+        return res && !Array.isArray(res) && !res.results ? res : null;
       }),
-      catchError(() => of(this.getMockThesisProgress(Number(studentId), semester || 3)))
+      catchError(() => of(null))
     );
   }
 
   getStudentTimeline(studentId: number | string, semester?: number): Observable<TimelineNode[]> {
     const url = `${this.baseUrl}/monitoring/timeline/?student=${studentId}${semester ? `&semester=${semester}` : ''}`;
     return this.http.get<TimelineNode[]>(url).pipe(
-      catchError(() => of(this.getMockTimeline(Number(studentId), semester)))
+      catchError(() => of([]))
     );
-  }
-
-  // --- MOCK FALLBACK DATA ---
-  private getMockStudents(): Student[] {
-    return [
-      {
-        id: 1,
-        userId: 101,
-        user: {
-          id: 101,
-          email: 'maria.gonzalez@posgrado.edu.mx',
-          firstName: 'María',
-          lastName: 'González López',
-          fullName: 'María González López',
-          role: 'ESTUDIANTE',
-          isActive: true
-        },
-        matricula: 'DOC-2023-042',
-        nombre_completo: 'María González López',
-        programa_doctoral: 'Doctorado en Ciencias de la Computación',
-        cohorte: '2023-B',
-        currentSemester: 3,
-        status: 'ACTIVO',
-        estatus_activo: true,
-        researchLine: 'Inteligencia Artificial y Procesamiento de Lenguaje Natural',
-        thesisTitle: 'Modelos de Lenguaje Adaptativos para Sistemas de Recomendación Educativa',
-        enrollmentDate: '2023-08-15',
-        expectedGraduationDate: '2026-07-31'
-      },
-      {
-        id: 2,
-        userId: 102,
-        user: {
-          id: 102,
-          email: 'carlos.ramirez@posgrado.edu.mx',
-          firstName: 'Carlos',
-          lastName: 'Ramírez Soto',
-          fullName: 'Carlos Ramírez Soto',
-          role: 'ESTUDIANTE',
-          isActive: true
-        },
-        matricula: 'DOC-2022-019',
-        nombre_completo: 'Carlos Ramírez Soto',
-        programa_doctoral: 'Doctorado en Biotecnología Médica',
-        cohorte: '2022-A',
-        currentSemester: 5,
-        status: 'ACTIVO',
-        estatus_activo: true,
-        researchLine: 'Nanopartículas para Administración Dirigida de Fármacos',
-        thesisTitle: 'Síntesis de Nanopartículas Poliméricas Funcionalizadas',
-        enrollmentDate: '2022-01-20',
-        expectedGraduationDate: '2025-01-31'
-      }
-    ];
-  }
-
-  private getMockStudentDetail(id: number): StudentDetail {
-    return {
-      id,
-      userId: 100 + id,
-      user: {
-        id: 100 + id,
-        email: `estudiante.${id}@posgrado.edu.mx`,
-        firstName: 'Estudiante',
-        lastName: `Ejemplo ${id}`,
-        fullName: `Estudiante Ejemplo ${id}`,
-        role: 'ESTUDIANTE',
-        isActive: true
-      },
-      matricula: `DOC-2023-00${id}`,
-      nombre_completo: `Estudiante Ejemplo ${id}`,
-      programa_doctoral: 'Doctorado en Ciencias de la Computación',
-      cohorte: '2023-B',
-      currentSemester: 3,
-      status: 'ACTIVO',
-      estatus_activo: true,
-      researchLine: 'Inteligencia Artificial',
-      thesisTitle: 'Modelos de Lenguaje en Posgrado',
-      enrollmentDate: '2023-08-15',
-      expectedGraduationDate: '2026-07-31',
-      semesters: this.getMockSemesters(),
-      thesisProgressPercent: 55,
-      totalAgreements: 8,
-      pendingAgreements: 2,
-      overdueAgreements: 1,
-      concludedAgreements: 5,
-      totalTutoringSessions: 6,
-      lastTutoringDate: '2024-11-20'
-    };
-  }
-
-  private getMockSemesters(): Semester[] {
-    return [
-      { id: 1, numero: 1, number: 1, name: 'Semestre 1', code: '2023-B', fecha_inicio: '2023-08-15', fecha_fin: '2024-01-15', startDate: '2023-08-15', endDate: '2024-01-15', is_active: false, isCurrent: false, status: 'CONCLUIDO' },
-      { id: 2, numero: 2, number: 2, name: 'Semestre 2', code: '2024-A', fecha_inicio: '2024-01-20', fecha_fin: '2024-06-30', startDate: '2024-01-20', endDate: '2024-06-30', is_active: false, isCurrent: false, status: 'CONCLUIDO' },
-      { id: 3, numero: 3, number: 3, name: 'Semestre 3', code: '2024-B', fecha_inicio: '2024-08-15', fecha_fin: '2025-01-15', startDate: '2024-08-15', endDate: '2025-01-15', is_active: true, isCurrent: true, status: 'EN_CURSO' }
-    ];
-  }
-
-  private getMockTutoringSessions(studentId: number, semester?: number): TutoringSession[] {
-    return [];
-  }
-
-  private getMockAgreements(studentId: number, semester?: number): Agreement[] {
-    return [];
-  }
-
-  private getMockThesisProgress(studentId: number, semester: number): ThesisProgress {
-    return {
-      studentId,
-      studentName: 'Estudiante Ejemplo',
-      thesisTitle: 'Investigación Doctoral',
-      researchLine: 'Inteligencia Artificial',
-      overallPercentage: 55,
-      chapters: [],
-      lastUpdated: '2024-11-20'
-    };
-  }
-
-  private getMockTimeline(studentId: number, semester?: number): TimelineNode[] {
-    return [];
   }
 }

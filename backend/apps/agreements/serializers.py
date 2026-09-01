@@ -44,6 +44,9 @@ class AgreementSerializer(serializers.ModelSerializer):
     estado_display = serializers.CharField(source='get_estado_display', read_only=True)
     created_by_nombre = serializers.SerializerMethodField()
     is_vencido = serializers.BooleanField(read_only=True)
+    semester_numero = serializers.SerializerMethodField()
+    semesterNumber = serializers.SerializerMethodField()
+    semester_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Agreement
@@ -53,6 +56,9 @@ class AgreementSerializer(serializers.ModelSerializer):
             'student',
             'student_nombre',
             'student_matricula',
+            'semester_numero',
+            'semesterNumber',
+            'semester_id',
             'descripcion',
             'responsable',
             'responsable_nombre',
@@ -76,8 +82,35 @@ class AgreementSerializer(serializers.ModelSerializer):
             'created_by_nombre',
             'created_at',
             'updated_at',
-            'audit_logs'
+            'audit_logs',
+            'semester_numero',
+            'semesterNumber',
+            'semester_id'
         ]
+
+    def get_semester_numero(self, obj):
+        if obj.session and obj.session.semester:
+            return obj.session.semester.numero
+        if obj.student:
+            active = obj.student.semesters.filter(is_active=True).first()
+            if active:
+                return active.numero
+            latest = obj.student.semesters.order_by('-numero').first()
+            if latest:
+                return latest.numero
+        return 1
+
+    def get_semesterNumber(self, obj):
+        return self.get_semester_numero(obj)
+
+    def get_semester_id(self, obj):
+        if obj.session and obj.session.semester_id:
+            return obj.session.semester_id
+        if obj.student:
+            active = obj.student.semesters.filter(is_active=True).first()
+            if active:
+                return active.id
+        return None
 
     def get_responsable_nombre(self, obj):
         return obj.responsable.get_full_name() if obj.responsable else ""
