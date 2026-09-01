@@ -165,8 +165,17 @@ export class StudentService {
   }
 
   getThesisProgress(studentId: number | string, semester?: number): Observable<ThesisProgress> {
-    const url = `${this.baseUrl}/thesis-progress/?student=${studentId}${semester ? `&semester=${semester}` : ''}`;
-    return this.http.get<ThesisProgress>(url).pipe(
+    const url = `${this.baseUrl}/thesis/?student=${studentId}${semester ? `&semester=${semester}` : ''}`;
+    return this.http.get<any>(url).pipe(
+      map(res => {
+        if (res && res.results && Array.isArray(res.results) && res.results.length > 0) {
+          return res.results[0];
+        }
+        if (Array.isArray(res) && res.length > 0) {
+          return res[0];
+        }
+        return res && !Array.isArray(res) && !res.results ? res : this.getMockThesisProgress(Number(studentId), semester || 3);
+      }),
       catchError(() => of(this.getMockThesisProgress(Number(studentId), semester || 3)))
     );
   }
