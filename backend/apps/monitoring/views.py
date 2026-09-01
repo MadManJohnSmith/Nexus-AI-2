@@ -51,7 +51,7 @@ class CoordinatorDashboardView(APIView):
         if period_filter and period_filter != 'TODOS':
             # Si el filtro coincide con una cohorte (ej. 2026-A, 2025-B, etc.), filtramos por cohorte o semestres vigentes
             students_qs = students_qs.filter(
-                models.Q(cohorte=period_filter) | models.Q(cohorte__iexact=period_filter)
+                Q(cohorte=period_filter) | Q(cohorte__iexact=period_filter)
             )
 
         students_qs = students_qs.prefetch_related(
