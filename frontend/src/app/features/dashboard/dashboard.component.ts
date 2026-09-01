@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -108,20 +108,28 @@ export class DashboardComponent implements OnInit {
     return alerts;
   });
 
-  ngOnInit(): void {
-    this.loadAll();
+  constructor() {
+    // Escucha reactiva a cambios en el selector de ciclo para recargar y filtrar métricas
+    effect(() => {
+      const activePeriod = this.periodService.activePeriod();
+      this.loadDashboard(activePeriod);
+    });
   }
 
-  loadAll(): void {
-    this.loadDashboard();
+  ngOnInit(): void {
     this.loadSupervisionAlerts();
   }
 
-  loadDashboard(): void {
+  loadAll(): void {
+    this.loadDashboard(this.periodService.activePeriod());
+    this.loadSupervisionAlerts();
+  }
+
+  loadDashboard(period?: string): void {
     this.loading.set(true);
     this.error.set(null);
 
-    this.monitoringService.getCoordinatorDashboard().subscribe({
+    this.monitoringService.getCoordinatorDashboard(period).subscribe({
       next: (data) => {
         this.kpis.set(data.kpis);
         this.riskSemaphore.set(data.semaforo_riesgo);

@@ -122,7 +122,11 @@ export class MonitoringService {
   /**
    * Obtiene las métricas institucionales, semáforos de riesgo y tabla priorizada del Dashboard del Coordinador.
    */
-  getCoordinatorDashboard(): Observable<CoordinatorDashboardResponse> {
-    return this.http.get<CoordinatorDashboardResponse>(`${this.apiUrl}/coordinator-dashboard/`);
+  getCoordinatorDashboard(period?: string): Observable<CoordinatorDashboardResponse> {
+    let params = new HttpParams();
+    if (period && period !== 'TODOS') {
+      params = params.set('period', period);
+    }
+    return this.http.get<CoordinatorDashboardResponse>(`${this.apiUrl}/coordinator-dashboard/`, { params });
   }
 }

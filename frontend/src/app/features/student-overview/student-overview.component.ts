@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, inject, ChangeDetectionStrategy, input } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, ChangeDetectionStrategy, input, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { StudentService } from '../../core/services/student.service';
@@ -129,6 +129,26 @@ export class StudentOverviewComponent implements OnInit {
   readonly totalOverdueAgreementsCount = computed(() => {
     return this.agreements().filter(a => a.status === 'VENCIDO').length;
   });
+
+  constructor() {
+    effect(() => {
+      const period = this.periodService.activePeriod();
+      const currentSt = this.student();
+      // Si el usuario cambia el periodo y no estamos en una URL fija con ID específico, navegar o sincronizar con alumno de esa cohorte
+      const routeParamId = this.route.snapshot.paramMap.get('id');
+      if (period !== 'TODOS' && (!routeParamId || routeParamId === '1')) {
+        this.studentService.getStudents().subscribe(res => {
+          const list = res.results || res;
+          if (Array.isArray(list) && list.length > 0) {
+            const matching = list.find(s => s.cohorte === period || s.cohort === period);
+            if (matching && String(matching.id) !== String(currentSt?.id)) {
+              this.loadStudentOverview(matching.id.toString());
+            }
+          }
+        });
+      }
+    });
+  }
 
   ngOnInit(): void {
     const routeId = this.id() || this.route.snapshot.paramMap.get('id');

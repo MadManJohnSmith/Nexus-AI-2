@@ -48,9 +48,19 @@ export class AgreementsListComponent implements OnInit {
     const query = this.searchTerm().trim().toLowerCase();
     const sId = this.selectedStudentId();
     const sem = this.selectedSemester();
+    const period = this.periodService.activePeriod();
 
     if (status !== 'TODOS') {
       list = list.filter(a => a.status === status);
+    }
+
+    if (period !== 'TODOS') {
+      const cohortStudents = this.studentsList().filter(
+        s => (s.cohorte === period || s.cohort === period)
+      ).map(s => s.id);
+      if (cohortStudents.length > 0) {
+        list = list.filter(a => cohortStudents.includes(a.studentId || a.student || 0));
+      }
     }
 
     if (sId !== 'ALL') {

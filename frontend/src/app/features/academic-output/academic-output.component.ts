@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -116,6 +116,21 @@ export class AcademicOutputComponent implements OnInit {
       pr.descripcion.toLowerCase().includes(term)
     );
   });
+
+  constructor() {
+    effect(() => {
+      const period = this.periodService.activePeriod();
+      const list = this.studentsList();
+      if (period !== 'TODOS' && list.length > 0) {
+        const matching = list.find(s => s.cohorte === period || s.cohort === period);
+        if (matching && matching.id !== this.selectedStudentId()) {
+          this.selectedStudentId.set(matching.id);
+          this.currentStudent.set(matching);
+          this.loadAllAcademicOutput();
+        }
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.initForms();

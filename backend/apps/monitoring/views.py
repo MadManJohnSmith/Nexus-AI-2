@@ -34,6 +34,7 @@ class CoordinatorDashboardView(APIView):
             raise PermissionDenied("Acceso denegado: El dashboard institucional está reservado para la coordinación académica.")
 
         today = timezone.now().date()
+        period_filter = request.query_params.get('period') or request.query_params.get('ciclo')
 
         # 1. Actualización en lote de acuerdos vencidos en la BD
         Agreement.objects.filter(
@@ -45,8 +46,15 @@ class CoordinatorDashboardView(APIView):
             updated_at=timezone.now()
         )
 
-        # 2. Querysets optimizados
-        students_qs = Student.objects.filter(estatus_activo=True).prefetch_related(
+        # 2. Querysets optimizados (filtrados opcionalmente por cohorte/ciclo)
+        students_qs = Student.objects.filter(estatus_activo=True)
+        if period_filter and period_filter != 'TODOS':
+            # Si el filtro coincide con una cohorte (ej. 2026-A, 2025-B, etc.), filtramos por cohorte o semestres vigentes
+            students_qs = students_qs.filter(
+                models.Q(cohorte=period_filter) | models.Q(cohorte__iexact=period_filter)
+            )
+
+        students_qs = students_qs.prefetch_related(
             'committee_members__user',
             'tutoring_sessions',
             'agreements',
